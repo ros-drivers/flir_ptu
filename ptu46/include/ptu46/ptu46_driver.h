@@ -44,14 +44,26 @@
 #define PTU46_DEFAULT_PORT "/dev/ttyR1"
 #define PTU46_DEFAULT_HZ 10
 
+// command defines
+#define PTU46_PAN 'p'
+#define PTU46_TILT 't'
+#define PTU46_MIN 'n'
+#define PTU46_MAX 'x'
+#define PTU46_MIN_SPEED 'l'
+#define PTU46_MAX_SPEED 'u'
+#define PTU46_VELOCITY 'v'
+#define PTU46_POSITION 'i'
+
+namespace PTU46
+{
+
 //
 // Pan-Tilt Control Class
 //
-
 class PTU46
 {
   public:
-    PTU46(char * port, int rate);
+    PTU46(const char* port, int rate);
     ~PTU46();
 
   // get count/degree resolution
@@ -94,5 +106,7 @@ class PTU46
   // cleanly disconnect
     void Disconnect(); 
 };
+
+}
 
 #endif

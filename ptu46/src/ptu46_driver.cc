@@ -49,22 +49,15 @@
 #include <string.h>
 #include <math.h>
 
-// command defines
-#define PTU46_PAN 'p'
-#define PTU46_TILT 't'
-#define PTU46_MIN 'n'
-#define PTU46_MAX 'x'
-#define PTU46_MIN_SPEED 'l'
-#define PTU46_MAX_SPEED 'u'
-#define PTU46_VELOCITY 'v'
-#define PTU46_POSITION 'i'
+namespace PTU46
+{
 
 //
 // Pan-Tilt Control Class
 //
 
 // Constructor opens the serial port, and read the config info from it
-PTU46::PTU46(char * port, int rate)
+PTU46::PTU46(const char * port, int rate)
 {
   tr = pr = 1;
   fd = -1;
@@ -456,3 +449,4 @@ char PTU46::GetMode ()
     return -1;
 }
 
+}
