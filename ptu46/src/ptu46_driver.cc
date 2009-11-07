@@ -1,8 +1,22 @@
+/* 
+ * PTU46 ROS Package
+ * Copyright (C) 2009 Erik Karulf (erik@cse.wustl.edu)
+ *
+ */
+ 
 /*
  *  Player - One Hell of a Robot Server
  *  Copyright (C) 2000  Brian Gerkey   &  Kasper Stoy
  *                      gerkey@usc.edu    kaspers@robotics.usc.edu
  *
+ * $Id$
+ *
+ * Author: Toby Collett (University of Auckland)
+ * Date: 2003-02-10
+ *
+ */
+
+/*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -19,68 +33,8 @@
  *
  */
 
-/*
- * $Id$
- *
- * methods for initializing, commanding, and getting data out of
- * the directed perceptions ptu-46 pan tilt unit camera
- *
- * Author: Toby Collett (University of Auckland)
- * Date: 2003-02-10
- *
- */
-
-/** @ingroup drivers */
-/** @{ */
-/** @defgroup driver_ptu46 ptu46
- * @brief Directed Perceptions PTU-46-17.5 pan-tilt unit
-
-The ptu46 driver provides control of the PTU-46-17.5 pan-tilt unit from
-directed perceptions through its text interface (This unit is standard on
-the RWI b21r robot). This driver will probably work with other directed
-perceptions pan tilt units, please let me know if you have tested it.
-
-The ptu46 driver supports both position and velocity control, via the
-PLAYER_PTZ_REQ_CONTROL_MODE request.
-
-@par Compile-time dependencies
-
-- none
-
-@par Provides
-
-- @ref interface_ptz
-
-@par Requires
-
-- none
-
-@par Configuration requests
-
-- PLAYER_PTZ_REQ_CONTROL_MODE
-
-@par Configuration file options
-
-- port (string)
-  - Default: "/dev/ttyS0"
-  - The serial port to which the unit is attached.
-
-@author Toby Collett, Radu Bogdan Rusu
-
- */
-
-/** @} */
-
-/* This file is divided into two classes, the first simply deals with
- * the control of the pan-tilt unit, providing simple interfaces such as
- * set pos and get pos.
- * The second class provides the player interface, hopefully this makes
- * the code easier to understand and a good base for a pretty much minimal
- * set up of a player driver
- */
-
-// Includes needed for player
-#include <libplayercore/playercore.h>
+// class declaration
+#include "ptu46/ptu46_driver.h"
 
 // serial includes
 #include <sys/types.h>
@@ -95,10 +49,6 @@ PLAYER_PTZ_REQ_CONTROL_MODE request.
 #include <string.h>
 #include <math.h>
 
-//serial defines
-#define PTU46_DEFAULT_BAUD 9600
-#define PTU46_BUFFER_LEN 255
-
 // command defines
 #define PTU46_PAN 'p'
 #define PTU46_TILT 't'
@@ -109,57 +59,9 @@ PLAYER_PTZ_REQ_CONTROL_MODE request.
 #define PTU46_VELOCITY 'v'
 #define PTU46_POSITION 'i'
 
-#define DEFAULT_PTZ_PORT "/dev/ttyR1"
-#define PTZ_SLEEP_TIME_USEC 100000
-
 //
 // Pan-Tilt Control Class
 //
-
-class PTU46
-{
-  public:
-    PTU46(char * port, int rate);
-    ~PTU46();
-
-  // get count/degree resolution
-    float GetRes (char type);
-  // get position limit
-    int GetLimit (char type, char LimType);
-
-  // get/set position in degrees
-    float GetPos (char type);
-    bool SetPos  (char type, float pos, bool Block = false);
-
-  // get/set speed in degrees/sec
-    bool SetSpeed  (char type, float speed);
-    float GetSpeed (char type);
-
-  // get/set move mode
-    bool SetMode (char type);
-    char GetMode ();
-
-    bool Open () {return fd >0;};
-
-  // Position Limits
-    int TMin, TMax, PMin, PMax;
-  // Speed Limits
-    int TSMin, TSMax, PSMin, PSMax;
-
-  protected:
-  // pan and tilt resolution
-    float tr,pr;
-
-  // serial port descriptor
-    int fd;
-    struct termios oldtio;
-
-  // read buffer
-    char buffer[PTU46_BUFFER_LEN+1];
-
-    int Write(const char * data, int length = 0);
-};
-
 
 // Constructor opens the serial port, and read the config info from it
 PTU46::PTU46(char * port, int rate)
@@ -210,18 +112,14 @@ PTU46::PTU46(char * port, int rate)
     case 38400: sp = B38400; break;
     default:
       fprintf(stderr,"Failed to set serial baud rate: %d\n", rate);
-      tcsetattr(fd, TCSANOW, &oldtio);
-      close(fd);
-      fd = -1;
+      Disconnect();
       return;
   }
 
   if (cfsetispeed(&newtio, sp) < 0 ||   cfsetospeed(&newtio, sp) < 0)
   {
     fprintf(stderr,"Failed to set serial baud rate: %d\n", rate);
-    tcsetattr(fd, TCSANOW, &oldtio);
-    close(fd);
-    fd = -1;
+    Disconnect();
     return;
   }
   // activate new settings
@@ -266,13 +164,12 @@ PTU46::PTU46(char * port, int rate)
 
     for (int i = 0; i < 9; ++i)
     {
-      while((len = read(fd, &temp, 1 )) == 0);
+      while((len = read(fd, &temp, 1 )) == 0) {};
       if ((len != 1) || (temp != response[i]))
       {
         fprintf(stderr,"Error Resetting Pan Tilt unit\n");
         fprintf(stderr,"Stopping access to pan-tilt unit\n");
-        tcsetattr(fd, TCSANOW, &oldtio);
-        fd = -1;
+        Disconnect();
       }
     }
 
@@ -299,8 +196,7 @@ PTU46::PTU46(char * port, int rate)
       // if it really failed give up and disable the driver
       fprintf(stderr,"Error getting pan-tilt resolution...is the serial port correct?\n");
       fprintf(stderr,"Stopping access to pan-tilt unit\n");
-      tcsetattr(fd, TCSANOW, &oldtio);
-      fd = -1;
+      Disconnect();
     }
   }
 }
@@ -308,11 +204,20 @@ PTU46::PTU46(char * port, int rate)
 
 PTU46::~PTU46()
 {
-  // restore old port settings
-  if (fd > 0)
-    tcsetattr(fd, TCSANOW, &oldtio);
+  Disconnect();
 }
 
+void PTU46::Disconnect()
+{
+  if (fd > 0)
+  {
+    // restore old port settings
+    tcsetattr(fd, TCSANOW, &oldtio);
+    // close the connection
+    close(fd);
+    fd = -1;
+  }
+}
 
 int PTU46::Write(const char * data, int length)
 {
@@ -328,8 +233,7 @@ int PTU46::Write(const char * data, int length)
   if(write(fd, data, length) < length)
   {
     fprintf(stderr,"Error writing to Pan Tilt Unit, disabling\n");
-    tcsetattr(fd, TCSANOW, &oldtio);
-    fd = -1;
+    Disconnect();
     return -1;
   }
   return 0;
@@ -441,7 +345,7 @@ bool PTU46::SetPos (char type, float pos, bool Block)
   }
 
   if (Block)
-    while (GetPos (type) != pos);
+    while (GetPos (type) != pos) {};
 
   return true;
 }
@@ -552,226 +456,3 @@ char PTU46::GetMode ()
     return -1;
 }
 
-
-///////////////////////////////////////////////////////////////
-// Player Driver Class                                       //
-///////////////////////////////////////////////////////////////
-class PTU46_Device:public ThreadedDriver
-{
-    protected:
-	// this function will be run in a separate thread
-	virtual void Main ();
-
-	player_ptz_data_t data;
-	player_ptz_cmd_t cmd;
-
-    public:
-	PTU46 * pantilt;
-
-	// config params
-	char ptz_serial_port[MAX_FILENAME_SIZE];
-	int Rate;
-	unsigned char MoveMode;
-
-	PTU46_Device (ConfigFile* cf, int section);
-
-	virtual int MainSetup    ();
-	virtual void MainQuit ();
-
-	// MessageHandler
-	int ProcessMessage (QueuePointer &resp_queue, player_msghdr * hdr, void * data);
-};
-
-////////////////////////////////////////////////////////////////////////////////
-// initialization function
-Driver* PTU46_Init (ConfigFile* cf, int section)
-{
-    return static_cast<Driver*> (new PTU46_Device (cf, section));
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// a driver registration function
-void
-ptu46_Register (DriverTable* table)
-{
-    table->AddDriver ("ptu46",  PTU46_Init);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-PTU46_Device::PTU46_Device (ConfigFile* cf, int section) :
-    ThreadedDriver (cf, section, true, PLAYER_MSGQUEUE_DEFAULT_MAXLEN, PLAYER_PTZ_CODE)
-{
-
-    data.pan = data.tilt = data.zoom = data.panspeed = data.tiltspeed = 0;
-    cmd.pan  = cmd.tilt  = cmd.zoom  = cmd.panspeed  = data.tiltspeed = 0;
-
-    MoveMode = PLAYER_PTZ_POSITION_CONTROL;
-
-    strncpy (ptz_serial_port,
-	cf->ReadString (section, "port", DEFAULT_PTZ_PORT),
-        sizeof (ptz_serial_port));
-    Rate = cf->ReadInt (section, "baudrate", PTU46_DEFAULT_BAUD);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-int
-PTU46_Device::MainSetup ()
-{
-    printf ("> PTU46 connection initializing (%s)...", ptz_serial_port);
-    fflush (stdout);
-
-    pantilt = new PTU46 (ptz_serial_port, Rate);
-    if (pantilt != NULL && pantilt->Open ())
-	printf ("[success]\n");
-    else
-    {
-	printf ("[failed]\n");
-	return -1;
-    }
-
-    player_ptz_cmd_t cmd;
-    cmd.pan = cmd.tilt = 0;
-    cmd.zoom      = 0;
-    cmd.panspeed  = 0;
-    cmd.tiltspeed = 0;
-    return (0);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void
-PTU46_Device::MainQuit ()
-{
-    delete pantilt;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-int
-PTU46_Device::ProcessMessage (QueuePointer &resp_queue, player_msghdr * hdr, void * data)
-{
-    assert (hdr);
-
-    // No REQ_GENERIC
-    if (Message::MatchMessage (hdr, PLAYER_MSGTYPE_REQ, PLAYER_PTZ_REQ_GENERIC, device_addr))
-        Publish (device_addr, resp_queue, PLAYER_MSGTYPE_RESP_NACK, hdr->subtype);
-    else
-	// REQ_CONTROL_MODE: position or velocity?
-	if (Message::MatchMessage (hdr, PLAYER_MSGTYPE_REQ, PLAYER_PTZ_REQ_CONTROL_MODE, device_addr))
-	{
-	    player_ptz_req_control_mode * control_mode = reinterpret_cast<player_ptz_req_control_mode *> (data);
-	    if (control_mode->mode != MoveMode)
-	    {
-		uint8_t NewMode;
-		if (control_mode->mode == PLAYER_PTZ_VELOCITY_CONTROL)
-			NewMode = PTU46_VELOCITY;
-		else
-		    if (control_mode->mode == PLAYER_PTZ_POSITION_CONTROL)
-			NewMode = PTU46_POSITION;
-		    else
-		    {
-		        Publish (device_addr, resp_queue, PLAYER_MSGTYPE_RESP_NACK, hdr->subtype);
-		        return 0;
-		    }
-
-		    if (pantilt->SetMode (NewMode))
-		    	MoveMode = NewMode;
-		    else
-		    {
-		        Publish (device_addr, resp_queue, PLAYER_MSGTYPE_RESP_NACK, hdr->subtype);
-		        return 0;
-		    }
-	    }
-	    Publish (device_addr, resp_queue, PLAYER_MSGTYPE_RESP_ACK, hdr->subtype);
-	}
-
-	else
-	    // CMD mode
-	    if (Message::MatchMessage (hdr, PLAYER_MSGTYPE_CMD, PLAYER_PTZ_CMD_STATE, device_addr))
-	    {
-		player_ptz_cmd_t * new_command = reinterpret_cast<player_ptz_cmd_t *> (data);
-
-		bool success = true;
-		// Different processing depending on movement mode
-		if (MoveMode == PTU46_VELOCITY)
-		{
-		    // ignore pan and tilt, just use velocity
-		    if (cmd.panspeed != new_command->panspeed)
-		    {
-			if (pantilt->SetSpeed (PTU46_PAN, RTOD(new_command->panspeed)))
-				cmd.panspeed = new_command->panspeed;
-			else
-				success = false;
-		    }
-		    if (cmd.tiltspeed != new_command->tiltspeed)
-		    {
-			if (pantilt->SetSpeed (PTU46_TILT, RTOD(new_command->tiltspeed)))
-				cmd.tiltspeed = new_command->tiltspeed;
-			else
-				success = false;
-		    }
-		}
-		else
-		{
-		    // position move mode, ignore zero velocities, set pan tilt pos
-		    if (cmd.pan != new_command->pan)
-		    {
-			if (pantilt->SetPos (PTU46_PAN, RTOD (new_command->pan)))
-				cmd.pan = new_command->pan;
-			else
-				success = false;
-		    }
-		    if (cmd.tilt != new_command->tilt)
-		    {
-			if (pantilt->SetPos (PTU46_TILT, RTOD (new_command->tilt)))
-				cmd.tilt = new_command->tilt;
-			else
-				success = false;
-		    }
-		    if (cmd.panspeed != new_command->panspeed && new_command->panspeed != 0)
-		    {
-			if (pantilt->SetSpeed (PTU46_PAN, RTOD(new_command->panspeed)))
-				cmd.panspeed = new_command->panspeed;
-			else
-				success = false;
-		    }
-		    if (cmd.tiltspeed != new_command->tiltspeed && new_command->tiltspeed != 0)
-		    {
-			if (pantilt->SetSpeed (PTU46_TILT, RTOD (new_command->tiltspeed)))
-				cmd.tiltspeed = new_command->tiltspeed;
-			else
-				success = false;
-		    }
-		}
-	    }
-	    else
-		return -1;
-	return 0;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// this function will be run in a separate thread
-void
-PTU46_Device::Main ()
-{
-    for (;;)
-    {
-        // test if we are supposed to cancel
-        pthread_testcancel();
-
-  	ProcessMessages ();
-
-	// Copy the data.
-    	data.pan  = DTOR (pantilt->GetPos (PTU46_PAN));
-	data.tilt = DTOR (pantilt->GetPos (PTU46_TILT));
-	data.zoom = 0;
-	data.panspeed  = DTOR (pantilt->GetSpeed (PTU46_PAN));
-	data.tiltspeed = DTOR (pantilt->GetSpeed (PTU46_TILT));
-
-	Publish (device_addr, PLAYER_MSGTYPE_DATA, PLAYER_PTZ_DATA_STATE,
-	    &data, sizeof (player_ptz_data_t), NULL);
-
-	// repeat frequency (default to 10 Hz)
-	usleep (PTZ_SLEEP_TIME_USEC);
-    }
-}
