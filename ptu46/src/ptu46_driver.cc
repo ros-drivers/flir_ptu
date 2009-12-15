@@ -233,7 +233,7 @@ int PTU46::Write(const char * data, int length)
 }
 
 
-// get count/degree resolution
+// get degree/count resolution
 float PTU46::GetRes(char type)
 {
   if (fd < 0)

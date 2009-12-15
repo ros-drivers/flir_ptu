@@ -41,7 +41,7 @@
 // serial defines
 #define PTU46_DEFAULT_BAUD 9600
 #define PTU46_BUFFER_LEN 255
-#define PTU46_DEFAULT_PORT "/dev/ttyR1"
+#define PTU46_DEFAULT_PORT "/dev/ttyPTU"
 #define PTU46_DEFAULT_HZ 10
 
 // command defines
@@ -66,7 +66,7 @@ class PTU46
     PTU46(const char* port, int rate);
     ~PTU46();
 
-  // get count/degree resolution
+  // get degree/count resolution
     float GetRes (char type);
   // get position limit
     int GetLimit (char type, char LimType);

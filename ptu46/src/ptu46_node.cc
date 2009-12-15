@@ -23,10 +23,8 @@
 
 #include <string>
 #include <ros/ros.h>
-#include "ptu46/ptu46_driver.h"
-#include "geometry_msgs/Quaternion.h"
-#include "geometry_util/conversion.h"
-#include "tf/transform_broadcaster.h"
+#include <ptu46/ptu46_driver.h>
+#include <sensor_msgs/JointState.h>
 
 namespace PTU46
 {
@@ -51,17 +49,14 @@ class PTU46_Node
     void spinOnce();
     
     // Callback Methods
-    void SetPosition(const geometry_msgs::Quaternion::ConstPtr& msg);
-    void SetVelocity(const geometry_msgs::Quaternion::ConstPtr& msg);
+    void SetGoal(const sensor_msgs::JointState::ConstPtr& msg);
 
   protected:
     PTU46* m_pantilt;
     ros::NodeHandle m_node;
-    ros::Publisher  m_position_pub;
-    ros::Publisher  m_velocity_pub;
-    ros::Publisher  m_goal_position_pub;
-    ros::Subscriber m_cmd_position_sub;
-    ros::Subscriber m_cmd_velocity_sub;
+    ros::Publisher  m_joint_pub;
+  // ros::Publisher  m_goal_position_pub;
+    ros::Subscriber m_joint_sub;
 };
 
 PTU46_Node::PTU46_Node(ros::NodeHandle& node_handle)
@@ -98,14 +93,30 @@ void PTU46_Node::Connect()
         Disconnect();
         return;
     }
+
+    float tres = m_pantilt->GetRes(PTU46_TILT), 
+      pres = m_pantilt->GetRes(PTU46_PAN);
+
+    m_node.setParam("/ptu/tiltmin", m_pantilt->TMin*tres);
+    m_node.setParam("/ptu/tiltmax", m_pantilt->TMax*tres);
+    m_node.setParam("/ptu/tiltminspeed", m_pantilt->TSMin*tres);
+    m_node.setParam("/ptu/tiltmaxspeed", m_pantilt->TSMax*tres);
+    m_node.setParam("/ptu/tiltres", tres);
+    
+    m_node.setParam("/ptu/panmin", m_pantilt->PMin*pres);
+    m_node.setParam("/ptu/panmax", m_pantilt->PMax*pres);
+    m_node.setParam("/ptu/panminspeed", m_pantilt->PSMin*pres);
+    m_node.setParam("/ptu/panmaxspeed", m_pantilt->PSMax*pres);
+    m_node.setParam("/ptu/panres", pres);
+		    
     
     // Publishers : Only publish the most recent reading
-    m_velocity_pub = m_node.advertise<geometry_msgs::Quaternion>("ptu_velocity", 1);
-    m_goal_position_pub = m_node.advertise<geometry_msgs::Quaternion>("ptu_goal", 1);
+    m_joint_pub = m_node.advertise<sensor_msgs::JointState>("ptu_velocity", 1);
+    //m_goal_position_pub = m_node.advertise<geometry_msgs::Quaternion>("ptu_goal", 1);
 
     // Subscribers : Only subscribe to the most recent instructions
-    m_cmd_position_sub = m_node.subscribe<geometry_msgs::Quaternion>("ptu_cmd_position", 1, &PTU46_Node::SetPosition, this);
-    m_cmd_velocity_sub = m_node.subscribe<geometry_msgs::Quaternion>("ptu_cmd_velocity", 1, &PTU46_Node::SetVelocity, this);
+    m_joint_sub = m_node.subscribe<sensor_msgs::JointState>("ptu_cmd", 1, &PTU46_Node::SetGoal, this);
+
 }
 
 void PTU46_Node::Disconnect()
@@ -117,33 +128,19 @@ void PTU46_Node::Disconnect()
         m_pantilt = NULL;   // Marks the service as disconnected
     }
 }
-
-void PTU46_Node::SetVelocity(const geometry_msgs::Quaternion::ConstPtr& msg)
+  
+void PTU46_Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg)
 {
     if (! ok())
         return;
-    
-    double roll, pitch, yaw;
-    geometry_util::GetEulerYPR(*msg, roll, pitch, yaw);
-    
-    m_pantilt->SetSpeed(PTU46_PAN, roll);
-    m_pantilt->SetSpeed(PTU46_TILT, pitch);
-    
-    // TODO: publish an empty goal?
-}
-
-void PTU46_Node::SetPosition(const geometry_msgs::Quaternion::ConstPtr& msg)
-{
-    if (! ok())
-        return;
-    
-    double roll, pitch, yaw;
-    geometry_util::GetEulerYPR(*msg, roll, pitch, yaw);
-
-    m_pantilt->SetPos(PTU46_PAN, roll);
-    m_pantilt->SetPos(PTU46_TILT, pitch);
-    
-    m_goal_position_pub.publish(msg);
+    double pan = msg->position[0];
+    double tilt = msg->position[1];
+    double panspeed = msg->velocity[0];
+    double tiltspeed = msg->velocity[1];
+    m_pantilt->SetPos(PTU46_PAN, pan);
+    m_pantilt->SetPos(PTU46_TILT, tilt);
+    m_pantilt->SetSpeed(PTU46_PAN, panspeed);
+    m_pantilt->SetSpeed(PTU46_TILT, tiltspeed);
 }
 
 void PTU46_Node::spinOnce()
@@ -159,7 +156,19 @@ void PTU46_Node::spinOnce()
     double tiltspeed = m_pantilt->GetSpeed(PTU46_TILT);
 
     // Publish Position & Speed
-    static tf::TransformBroadcaster br;
+    sensor_msgs::JointState joint_state;
+    joint_state.set_name_size(2);
+    joint_state.set_position_size(2);
+    joint_state.set_velocity_size(2);
+    joint_state.name[0] ="head_pan_joint";
+    joint_state.position[0] = pan;
+    joint_state.velocity[0] = panspeed;
+    joint_state.name[1] ="head_tilt_joint";
+    joint_state.position[1] = tilt;
+    joint_state.velocity[1] = tiltspeed;
+    m_joint_pub.publish(joint_state);
+
+    /*static tf::TransformBroadcaster br;
     tf::Quaternion quaternion = tf::Quaternion();
     quaternion.setEuler(pan, tilt, 0.0); // yaw, pitch, roll
     br.sendTransform(tf::Transform(quaternion), ros::Time::now(), "ptu_mount", "ptu_base");
@@ -168,7 +177,7 @@ void PTU46_Node::spinOnce()
     ang_velocity.setEuler(panspeed, tiltspeed, 0.0); // yaw, pitch, roll
     geometry_msgs::Quaternion msg;
     tf::quaternionTFToMsg(ang_velocity, msg);
-    m_velocity_pub.publish(msg);
+    m_velocity_pub.publish(msg);*/
 }
 
 } // PTU46 namespace
@@ -178,34 +187,32 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "ptu46");
     ros::NodeHandle n;
     
-	// Connect to PTU
-	PTU46::PTU46_Node ptu_node = PTU46::PTU46_Node(n);
-	ptu_node.Connect();
-	if (! ptu_node.ok())
-	    return -1;
-	
+    // Connect to PTU
+    PTU46::PTU46_Node ptu_node = PTU46::PTU46_Node(n);
+    ptu_node.Connect();
+    if (! ptu_node.ok())
+      return -1;
+    
     // Query for polling frequency
     int hz;
     n.param("ptu_hz", hz, PTU46_DEFAULT_HZ);
-	ros::Rate loop_rate(hz);
-		
-	while (ros::ok() && ptu_node.ok())
-	{
-	    // Publish position & velocity
-	    ptu_node.spinOnce();
-	    
-	    // Process a round of subscription messages
-	    ros::spinOnce();
-	    
-	    // This will adjust as needed per iteration
-	    loop_rate.sleep();
-	}
-	
-	if (! ptu_node.ok())
-	{
-	    ROS_ERROR("pan/tilt unit disconncted prematurely");
-	    return -1;
-	}
-	
-	return 0;
+    ros::Rate loop_rate(hz);
+    
+    while (ros::ok() && ptu_node.ok()) {
+      // Publish position & velocity
+      ptu_node.spinOnce();
+      
+      // Process a round of subscription messages
+      ros::spinOnce();
+      
+      // This will adjust as needed per iteration
+      loop_rate.sleep();
+    }
+    
+    if (! ptu_node.ok()){
+      ROS_ERROR("pan/tilt unit disconncted prematurely");
+      return -1;
+    }
+    
+    return 0;
 }
