@@ -6,9 +6,9 @@
   <license>GPL</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/ptu46</url>
-  <depend package="geometry_msgs"/>
-  <depend package="geometry_util"/>
+
+  <depend package="sensor_msgs"/>
   <depend package="roscpp"/>
-  <depend package="tf"/>
+
 </package>
 

@@ -34,7 +34,7 @@
  */
 
 // class declaration
-#include "ptu46/ptu46_driver.h"
+#include <ptu46/ptu46_driver.h>
 
 // serial includes
 #include <sys/types.h>

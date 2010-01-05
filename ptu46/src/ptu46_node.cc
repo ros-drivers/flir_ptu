@@ -55,7 +55,6 @@ class PTU46_Node
     PTU46* m_pantilt;
     ros::NodeHandle m_node;
     ros::Publisher  m_joint_pub;
-  // ros::Publisher  m_goal_position_pub;
     ros::Subscriber m_joint_sub;
 };
 
@@ -97,31 +96,31 @@ void PTU46_Node::Connect()
     float tres = m_pantilt->GetRes(PTU46_TILT), 
       pres = m_pantilt->GetRes(PTU46_PAN);
 
-    m_node.setParam("/ptu/tiltmin", m_pantilt->TMin*tres);
-    m_node.setParam("/ptu/tiltmax", m_pantilt->TMax*tres);
-    m_node.setParam("/ptu/tiltminspeed", m_pantilt->TSMin*tres);
-    m_node.setParam("/ptu/tiltmaxspeed", m_pantilt->TSMax*tres);
-    m_node.setParam("/ptu/tiltres", tres);
+    m_node.setParam("/ptu/min_tilt", m_pantilt->TMin*tres);
+    m_node.setParam("/ptu/max_tilt", m_pantilt->TMax*tres);
+    m_node.setParam("/ptu/min_tilt_speed", m_pantilt->TSMin*tres);
+    m_node.setParam("/ptu/max_tilt_speed", m_pantilt->TSMax*tres);
+    m_node.setParam("/ptu/tilt_step", tres);
     
-    m_node.setParam("/ptu/panmin", m_pantilt->PMin*pres);
-    m_node.setParam("/ptu/panmax", m_pantilt->PMax*pres);
-    m_node.setParam("/ptu/panminspeed", m_pantilt->PSMin*pres);
-    m_node.setParam("/ptu/panmaxspeed", m_pantilt->PSMax*pres);
-    m_node.setParam("/ptu/panres", pres);
+    m_node.setParam("/ptu/min_pan", m_pantilt->PMin*pres);
+    m_node.setParam("/ptu/max_pan", m_pantilt->PMax*pres);
+    m_node.setParam("/ptu/min_pan_speed", m_pantilt->PSMin*pres);
+    m_node.setParam("/ptu/max_pan_speed", m_pantilt->PSMax*pres);
+    m_node.setParam("/ptu/pan_step", pres);
 		    
     
     // Publishers : Only publish the most recent reading
-    m_joint_pub = m_node.advertise<sensor_msgs::JointState>("ptu_velocity", 1);
-    //m_goal_position_pub = m_node.advertise<geometry_msgs::Quaternion>("ptu_goal", 1);
+    m_joint_pub = m_node.advertise
+      <sensor_msgs::JointState>("ptu_state", 1);
 
     // Subscribers : Only subscribe to the most recent instructions
-    m_joint_sub = m_node.subscribe<sensor_msgs::JointState>("ptu_cmd", 1, &PTU46_Node::SetGoal, this);
+    m_joint_sub = m_node.subscribe
+      <sensor_msgs::JointState>("ptu_cmd", 1, &PTU46_Node::SetGoal, this);
 
 }
 
 void PTU46_Node::Disconnect()
-{
-    
+{    
     if (m_pantilt != NULL)
     {
         delete m_pantilt;   // Closes the connection
@@ -168,16 +167,6 @@ void PTU46_Node::spinOnce()
     joint_state.velocity[1] = tiltspeed;
     m_joint_pub.publish(joint_state);
 
-    /*static tf::TransformBroadcaster br;
-    tf::Quaternion quaternion = tf::Quaternion();
-    quaternion.setEuler(pan, tilt, 0.0); // yaw, pitch, roll
-    br.sendTransform(tf::Transform(quaternion), ros::Time::now(), "ptu_mount", "ptu_base");
-
-    tf::Quaternion ang_velocity = tf::Quaternion();
-    ang_velocity.setEuler(panspeed, tiltspeed, 0.0); // yaw, pitch, roll
-    geometry_msgs::Quaternion msg;
-    tf::quaternionTFToMsg(ang_velocity, msg);
-    m_velocity_pub.publish(msg);*/
 }
 
 } // PTU46 namespace
