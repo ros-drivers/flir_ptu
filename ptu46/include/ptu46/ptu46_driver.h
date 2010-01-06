@@ -1,9 +1,9 @@
-/* 
+/*
  * PTU46 ROS Package
  * Copyright (C) 2009 Erik Karulf (erik@cse.wustl.edu)
  *
  */
- 
+
 /*
  *  Player - One Hell of a Robot Server
  *  Copyright (C) 2000  Brian Gerkey   &  Kasper Stoy
@@ -54,57 +54,57 @@
 #define PTU46_VELOCITY 'v'
 #define PTU46_POSITION 'i'
 
-namespace PTU46
-{
+namespace PTU46 {
 
 //
 // Pan-Tilt Control Class
 //
-class PTU46
-{
-  public:
-    PTU46(const char* port, int rate);
-    ~PTU46();
+class PTU46 {
+    public:
+        PTU46(const char* port, int rate);
+        ~PTU46();
 
-  // get degree/count resolution
-    float GetRes (char type);
-  // get position limit
-    int GetLimit (char type, char LimType);
+        // get degree/count resolution
+        float GetRes (char type);
+        // get position limit
+        int GetLimit (char type, char LimType);
 
-  // get/set position in degrees
-    float GetPos (char type);
-    bool SetPos  (char type, float pos, bool Block = false);
+        // get/set position in degrees
+        float GetPos (char type);
+        bool SetPos  (char type, float pos, bool Block = false);
 
-  // get/set speed in degrees/sec
-    bool SetSpeed  (char type, float speed);
-    float GetSpeed (char type);
+        // get/set speed in degrees/sec
+        bool SetSpeed  (char type, float speed);
+        float GetSpeed (char type);
 
-  // get/set move mode
-    bool SetMode (char type);
-    char GetMode ();
+        // get/set move mode
+        bool SetMode (char type);
+        char GetMode ();
 
-    bool Open () {return fd >0;};
+        bool Open () {
+            return fd >0;
+        };
 
-  // Position Limits
-    int TMin, TMax, PMin, PMax;
-  // Speed Limits
-    int TSMin, TSMax, PSMin, PSMax;
+        // Position Limits
+        int TMin, TMax, PMin, PMax;
+        // Speed Limits
+        int TSMin, TSMax, PSMin, PSMax;
 
-  protected:
-  // pan and tilt resolution
-    float tr,pr;
+    protected:
+        // pan and tilt resolution
+        float tr,pr;
 
-  // serial port descriptor
-    int fd;
-    struct termios oldtio;
+        // serial port descriptor
+        int fd;
+        struct termios oldtio;
 
-  // read buffer
-    char buffer[PTU46_BUFFER_LEN+1];
+        // read buffer
+        char buffer[PTU46_BUFFER_LEN+1];
 
-    int Write(const char * data, int length = 0);
+        int Write(const char * data, int length = 0);
 
-  // cleanly disconnect
-    void Disconnect(); 
+        // cleanly disconnect
+        void Disconnect();
 };
 
 }
