@@ -6,7 +6,7 @@
   <license>GPL</license>
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/ptu46</url>
-
+  <depend package="tf"/>
   <depend package="sensor_msgs"/>
   <depend package="roscpp"/>
 

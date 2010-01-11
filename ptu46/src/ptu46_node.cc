@@ -25,6 +25,7 @@
 #include <ros/ros.h>
 #include <ptu46/ptu46_driver.h>
 #include <sensor_msgs/JointState.h>
+#include <tf/transform_broadcaster.h>
 
 namespace PTU46 {
 
@@ -147,6 +148,7 @@ void PTU46_Node::spinOnce() {
 
     // Publish Position & Speed
     sensor_msgs::JointState joint_state;
+	joint_state.header.stamp = ros::Time::now();
     joint_state.set_name_size(2);
     joint_state.set_position_size(2);
     joint_state.set_velocity_size(2);
@@ -160,10 +162,22 @@ void PTU46_Node::spinOnce() {
 
     // Publish Transform
     static tf::TransformBroadcaster br;
-    tf::Quaternion quaternion = tf::Quaternion();
-    quaternion.setEuler(pan, tilt, 0.0); // yaw, pitch, roll
-    br.sendTransform(tf::Transform(quaternion), ros::Time::now(),
-                     "ptu_mount", "ptu_base");
+	tf::Quaternion qx = tf::Quaternion();
+	qx.setEuler(0.0, tilt/180.0*3.1415, pan/180.0*3.1415); // yaw, pitch, roll
+    geometry_msgs::Quaternion quaternion = geometry_msgs::Quaternion();
+	
+	quaternion.w = (double) qx.getW();
+	quaternion.x = (double) qx.getX();
+	quaternion.y = (double) qx.getY();
+	quaternion.z = (double) qx.getZ();
+    //
+
+	geometry_msgs::TransformStamped trans;
+	trans.header.stamp = ros::Time::now();
+    trans.header.frame_id = "ptu_base";
+    trans.child_frame_id = "ptu_mount";
+	trans.transform.rotation = quaternion;
+    br.sendTransform(trans);
 
 }
 
