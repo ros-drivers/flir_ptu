@@ -76,9 +76,9 @@ void PTU46_Node::Connect() {
 
     // Query for serial configuration
     std::string port;
-    m_node.param<std::string>("ptu_port", port, PTU46_DEFAULT_PORT);
+    m_node.param<std::string>("port", port, PTU46_DEFAULT_PORT);
     int baud;
-    m_node.param("ptu_baud", baud, PTU46_DEFAULT_BAUD);
+    m_node.param("baud", baud, PTU46_DEFAULT_BAUD);
 
     // Connect to the PTU
     m_pantilt = new PTU46(port.c_str(), baud);
@@ -92,17 +92,17 @@ void PTU46_Node::Connect() {
     float tres = m_pantilt->GetRes(PTU46_TILT),
                  pres = m_pantilt->GetRes(PTU46_PAN);
 
-    m_node.setParam("/ptu/min_tilt", m_pantilt->TMin*tres);
-    m_node.setParam("/ptu/max_tilt", m_pantilt->TMax*tres);
-    m_node.setParam("/ptu/min_tilt_speed", m_pantilt->TSMin*tres);
-    m_node.setParam("/ptu/max_tilt_speed", m_pantilt->TSMax*tres);
-    m_node.setParam("/ptu/tilt_step", tres);
+    m_node.setParam("min_tilt", m_pantilt->TMin*tres);
+    m_node.setParam("max_tilt", m_pantilt->TMax*tres);
+    m_node.setParam("min_tilt_speed", m_pantilt->TSMin*tres);
+    m_node.setParam("max_tilt_speed", m_pantilt->TSMax*tres);
+    m_node.setParam("tilt_step", tres);
 
-    m_node.setParam("/ptu/min_pan", m_pantilt->PMin*pres);
-    m_node.setParam("/ptu/max_pan", m_pantilt->PMax*pres);
-    m_node.setParam("/ptu/min_pan_speed", m_pantilt->PSMin*pres);
-    m_node.setParam("/ptu/max_pan_speed", m_pantilt->PSMax*pres);
-    m_node.setParam("/ptu/pan_step", pres);
+    m_node.setParam("min_pan", m_pantilt->PMin*pres);
+    m_node.setParam("max_pan", m_pantilt->PMax*pres);
+    m_node.setParam("min_pan_speed", m_pantilt->PSMin*pres);
+    m_node.setParam("max_pan_speed", m_pantilt->PSMax*pres);
+    m_node.setParam("pan_step", pres);
 
 
     // Publishers : Only publish the most recent reading
@@ -184,8 +184,8 @@ void PTU46_Node::spinOnce() {
 } // PTU46 namespace
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "ptu46");
-    ros::NodeHandle n;
+    ros::init(argc, argv, "ptu");
+    ros::NodeHandle n("~");
 
     // Connect to PTU
     PTU46::PTU46_Node ptu_node = PTU46::PTU46_Node(n);
@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
 
     // Query for polling frequency
     int hz;
-    n.param("ptu_hz", hz, PTU46_DEFAULT_HZ);
+    n.param("hz", hz, PTU46_DEFAULT_HZ);
     ros::Rate loop_rate(hz);
 
     while (ros::ok() && ptu_node.ok()) {
