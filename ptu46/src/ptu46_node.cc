@@ -107,11 +107,11 @@ void PTU46_Node::Connect() {
 
     // Publishers : Only publish the most recent reading
     m_joint_pub = m_node.advertise
-                  <sensor_msgs::JointState>("ptu_state", 1);
+                  <sensor_msgs::JointState>("state", 1);
 
     // Subscribers : Only subscribe to the most recent instructions
     m_joint_sub = m_node.subscribe
-                  <sensor_msgs::JointState>("ptu_cmd", 1, &PTU46_Node::SetGoal, this);
+                  <sensor_msgs::JointState>("cmd", 1, &PTU46_Node::SetGoal, this);
 
 }
 
