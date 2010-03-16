@@ -250,7 +250,7 @@ int PTU46::Write(const char * data, int length) {
 }
 
 
-// get degree/count resolution
+// get radians/count resolution
 float PTU46::GetRes(char type) {
     if (fd < 0)
         return -1;
@@ -268,7 +268,9 @@ float PTU46::GetRes(char type) {
     }
 
     buffer[len] = '\0';
-    return strtod(&buffer[2],NULL)/3600;
+    double z = strtod(&buffer[2],NULL);
+    z = z/3600; // degrees/count
+    return  z*M_PI/180; //radians/count
 }
 
 // get position limit
@@ -294,7 +296,7 @@ int PTU46::GetLimit(char type, char LimType) {
 }
 
 
-// get position in degrees
+// get position in radians
 float PTU46::GetPos (char type) {
     if (fd < 0)
         return -1;
@@ -318,7 +320,7 @@ float PTU46::GetPos (char type) {
 }
 
 
-// set position in degrees
+// set position in radians
 bool PTU46::SetPos (char type, float pos, bool Block) {
     if (fd < 0)
         return false;
@@ -351,7 +353,7 @@ bool PTU46::SetPos (char type, float pos, bool Block) {
     return true;
 }
 
-// get speed in degrees/sec
+// get speed in radians/sec
 float PTU46::GetSpeed (char type) {
     if (fd < 0)
         return -1;
@@ -376,7 +378,7 @@ float PTU46::GetSpeed (char type) {
 
 
 
-// set speed in degrees/sec
+// set speed in radians/sec
 bool PTU46::SetSpeed (char type, float pos) {
     if (fd < 0)
         return false;

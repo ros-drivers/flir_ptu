@@ -81,6 +81,7 @@ void PTU46_Node::Connect() {
     m_node.param("baud", baud, PTU46_DEFAULT_BAUD);
 
     // Connect to the PTU
+    ROS_INFO("Attempting to connect to %s...", port.c_str());
     m_pantilt = new PTU46(port.c_str(), baud);
     ROS_ASSERT(m_pantilt != NULL);
     if (! m_pantilt->Open()) {
@@ -88,6 +89,7 @@ void PTU46_Node::Connect() {
         Disconnect();
         return;
     }
+    ROS_INFO("Connected!");
 
     float tres = m_pantilt->GetRes(PTU46_TILT),
                  pres = m_pantilt->GetRes(PTU46_PAN);
@@ -148,7 +150,7 @@ void PTU46_Node::spinOnce() {
 
     // Publish Position & Speed
     sensor_msgs::JointState joint_state;
-	joint_state.header.stamp = ros::Time::now();
+    joint_state.header.stamp = ros::Time::now();
     joint_state.set_name_size(2);
     joint_state.set_position_size(2);
     joint_state.set_velocity_size(2);
@@ -162,21 +164,20 @@ void PTU46_Node::spinOnce() {
 
     // Publish Transform
     static tf::TransformBroadcaster br;
-	tf::Quaternion qx = tf::Quaternion();
-	qx.setEuler(0.0, tilt/180.0*3.1415, pan/180.0*3.1415); // yaw, pitch, roll
+    tf::Quaternion qx = tf::Quaternion();
+    qx.setEuler(0.0, tilt, pan); // yaw, pitch, roll
     geometry_msgs::Quaternion quaternion = geometry_msgs::Quaternion();
-	
-	quaternion.w = (double) qx.getW();
-	quaternion.x = (double) qx.getX();
-	quaternion.y = (double) qx.getY();
-	quaternion.z = (double) qx.getZ();
-    //
 
-	geometry_msgs::TransformStamped trans;
-	trans.header.stamp = ros::Time::now();
+    quaternion.w = (double) qx.getW();
+    quaternion.x = (double) qx.getX();
+    quaternion.y = (double) qx.getY();
+    quaternion.z = (double) qx.getZ();
+
+    geometry_msgs::TransformStamped trans;
+    trans.header.stamp = ros::Time::now();
     trans.header.frame_id = "ptu_base";
     trans.child_frame_id = "ptu_mount";
-	trans.transform.rotation = quaternion;
+    trans.transform.rotation = quaternion;
     br.sendTransform(trans);
 
 }
