@@ -1,10 +1,15 @@
-/*
+#include <string>
+#include <ros/ros.h>
+#include <ptu46/ptu46_driver.h>
+#include <sensor_msgs/JointState.h>
+#include <tf/transform_broadcaster.h>
+
+namespace PTU46 {
+
+/**
  * PTU46 ROS Package
  * Copyright (C) 2009 Erik Karulf (erik@cse.wustl.edu)
  *
- */
-
-/*
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -19,20 +24,6 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
- */
-
-#include <string>
-#include <ros/ros.h>
-#include <ptu46/ptu46_driver.h>
-#include <sensor_msgs/JointState.h>
-#include <tf/transform_broadcaster.h>
-
-namespace PTU46 {
-
-/*
- * PTU46 Node Class
- * Note: this class is *not* thread safe as it is expecting to be called from
- * within a single threaded main loop.
  */
 class PTU46_Node {
     public:
@@ -68,6 +59,8 @@ PTU46_Node::~PTU46_Node() {
     Disconnect();
 }
 
+/** Opens the connection to the PTU and sets appropriate parameters.
+    Also manages subscriptions/publishers */
 void PTU46_Node::Connect() {
     // If we are reconnecting, first make sure to disconnect
     if (ok()) {
@@ -84,27 +77,24 @@ void PTU46_Node::Connect() {
     ROS_INFO("Attempting to connect to %s...", port.c_str());
     m_pantilt = new PTU46(port.c_str(), baud);
     ROS_ASSERT(m_pantilt != NULL);
-    if (! m_pantilt->Open()) {
+    if (! m_pantilt->isOpen()) {
         ROS_ERROR("Could not connect to pan/tilt unit [%s]", port.c_str());
         Disconnect();
         return;
     }
     ROS_INFO("Connected!");
 
-    float tres = m_pantilt->GetRes(PTU46_TILT),
-                 pres = m_pantilt->GetRes(PTU46_PAN);
+    m_node.setParam("min_tilt", m_pantilt->GetMin(PTU46_TILT));
+    m_node.setParam("max_tilt", m_pantilt->GetMax(PTU46_TILT));
+    m_node.setParam("min_tilt_speed", m_pantilt->GetMinSpeed(PTU46_TILT));
+    m_node.setParam("max_tilt_speed", m_pantilt->GetMaxSpeed(PTU46_TILT));
+    m_node.setParam("tilt_step", m_pantilt->GetResolution(PTU46_TILT));
 
-    m_node.setParam("min_tilt", m_pantilt->TMin*tres);
-    m_node.setParam("max_tilt", m_pantilt->TMax*tres);
-    m_node.setParam("min_tilt_speed", m_pantilt->TSMin*tres);
-    m_node.setParam("max_tilt_speed", m_pantilt->TSMax*tres);
-    m_node.setParam("tilt_step", tres);
-
-    m_node.setParam("min_pan", m_pantilt->PMin*pres);
-    m_node.setParam("max_pan", m_pantilt->PMax*pres);
-    m_node.setParam("min_pan_speed", m_pantilt->PSMin*pres);
-    m_node.setParam("max_pan_speed", m_pantilt->PSMax*pres);
-    m_node.setParam("pan_step", pres);
+    m_node.setParam("min_pan", m_pantilt->GetMax(PTU46_PAN));
+    m_node.setParam("max_pan", m_pantilt->GetMax(PTU46_PAN));
+    m_node.setParam("min_pan_speed", m_pantilt->GetMinSpeed(PTU46_PAN));
+    m_node.setParam("max_pan_speed", m_pantilt->GetMaxSpeed(PTU46_PAN));
+    m_node.setParam("pan_step", m_pantilt->GetResolution(PTU46_PAN));
 
 
     // Publishers : Only publish the most recent reading
@@ -117,6 +107,7 @@ void PTU46_Node::Connect() {
 
 }
 
+/** Disconnect */
 void PTU46_Node::Disconnect() {
     if (m_pantilt != NULL) {
         delete m_pantilt;   // Closes the connection
@@ -124,6 +115,7 @@ void PTU46_Node::Disconnect() {
     }
 }
 
+/** Callback for getting new Goal JointState */
 void PTU46_Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
     if (! ok())
         return;
@@ -131,19 +123,23 @@ void PTU46_Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
     double tilt = msg->position[1];
     double panspeed = msg->velocity[0];
     double tiltspeed = msg->velocity[1];
-    m_pantilt->SetPos(PTU46_PAN, pan);
-    m_pantilt->SetPos(PTU46_TILT, tilt);
+    m_pantilt->SetPosition(PTU46_PAN, pan);
+    m_pantilt->SetPosition(PTU46_TILT, tilt);
     m_pantilt->SetSpeed(PTU46_PAN, panspeed);
     m_pantilt->SetSpeed(PTU46_TILT, tiltspeed);
 }
 
+/**
+ * Publishes a joint_state message with position and speed.
+ * Also sends out updated TF info.
+ */
 void PTU46_Node::spinOnce() {
     if (! ok())
         return;
 
     // Read Position & Speed
-    double pan  = m_pantilt->GetPos(PTU46_PAN);
-    double tilt = m_pantilt->GetPos(PTU46_TILT);
+    double pan  = m_pantilt->GetPosition(PTU46_PAN);
+    double tilt = m_pantilt->GetPosition(PTU46_TILT);
 
     double panspeed  = m_pantilt->GetSpeed(PTU46_PAN);
     double tiltspeed = m_pantilt->GetSpeed(PTU46_TILT);

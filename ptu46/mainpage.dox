@@ -2,7 +2,11 @@
 \mainpage
 \htmlinclude manifest.html
 
-\b ptu46 implements the driver and node for Directed Perception PTU-D46 pan tilt unit. Specifically it was developed on the PTU-D46-17.5. 
+ptu46 implements the driver and node for Directed Perception PTU-D46 pan tilt unit. Specifically it was developed on the PTU-D46-17.5. 
+
+Specs: http://www.dperception.com/products/ptu-d46/ptu-d46-17/Specifications/
+
+The driver send commands to the PTU using arbitrary "count" units, which the driver converts into radians. 
 
 <!-- \section codeapi Code API
 Provide links to specific auto-generated API documentation within your

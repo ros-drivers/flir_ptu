@@ -297,7 +297,7 @@ int PTU46::GetLimit(char type, char LimType) {
 
 
 // get position in radians
-float PTU46::GetPos (char type) {
+float PTU46::GetPosition (char type) {
     if (fd < 0)
         return -1;
 
@@ -316,17 +316,17 @@ float PTU46::GetPos (char type) {
 
     buffer[len] = '\0';
 
-    return strtod (&buffer[2],NULL) * (type == PTU46_TILT ? tr : pr);
+    return strtod (&buffer[2],NULL) * GetResolution(type);
 }
 
 
 // set position in radians
-bool PTU46::SetPos (char type, float pos, bool Block) {
+bool PTU46::SetPosition (char type, float pos, bool Block) {
     if (fd < 0)
         return false;
 
     // get raw encoder count to move
-    int Count = static_cast<int> (pos/(type == PTU46_TILT ? tr : pr));
+    int Count = static_cast<int> (pos/GetResolution(type));
 
     // Check limits
     if (Count < (type == PTU46_TILT ? TMin : PMin) || Count > (type == PTU46_TILT ? TMax : PMax)) {
@@ -348,7 +348,7 @@ bool PTU46::SetPos (char type, float pos, bool Block) {
     }
 
     if (Block)
-        while (GetPos (type) != pos) {};
+        while (GetPosition (type) != pos) {};
 
     return true;
 }
@@ -373,7 +373,7 @@ float PTU46::GetSpeed (char type) {
 
     buffer[len] = '\0';
 
-    return strtod(&buffer[2],NULL) * (type == PTU46_TILT ? tr : pr);
+    return strtod(&buffer[2],NULL) * GetResolution(type);
 }
 
 
@@ -384,7 +384,7 @@ bool PTU46::SetSpeed (char type, float pos) {
         return false;
 
     // get raw encoder speed to move
-    int Count = static_cast<int> (pos/(type == PTU46_TILT ? tr : pr));
+    int Count = static_cast<int> (pos/GetResolution(type));
     // Check limits
     if (abs(Count) < (type == PTU46_TILT ? TSMin : PSMin) || abs(Count) > (type == PTU46_TILT ? TSMax : PSMax)) {
         fprintf (stderr,"Pan Tilt Speed Value out of Range: %c %f(%d) (%d-%d)\n", type, pos, Count, (type == PTU46_TILT ? TSMin : PSMin),(type == PTU46_TILT ? TSMax : PSMax));
@@ -427,7 +427,7 @@ bool PTU46::SetMode (char type) {
     return true;
 }
 
-// get position in degrees
+// get ptu mode
 char PTU46::GetMode () {
     if (fd < 0)
         return -1;
