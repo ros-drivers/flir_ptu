@@ -87,14 +87,14 @@ class PTU46 {
          * \return Minimum position in radians
          */
         float GetMin (char type) {
-            return (type == PTU46_TILT ? TMin : PMin);
+            return GetResolution(type)*(type == PTU46_TILT ? TMin : PMin);
         }
         /**
          * \param type 'p' or 't'
          * \return Maximum position in radians
          */
         float GetMax (char type) {
-            return (type == PTU46_TILT ? TMax : PMax);
+            return GetResolution(type)*(type == PTU46_TILT ? TMax : PMax);
         }
 
         /**
@@ -102,14 +102,14 @@ class PTU46 {
          * \return Minimum speed in radians/second
          */
         float GetMinSpeed (char type) {
-            return (type == PTU46_TILT ? TSMin : PSMin);
+            return GetResolution(type)*(type == PTU46_TILT ? TSMin : PSMin);
         }
         /**
          * \param type 'p' or 't'
          * \return Maximum speed in radians/second
          */
         float GetMaxSpeed (char type) {
-            return (type == PTU46_TILT ? TSMax : PSMax);
+            return GetResolution(type)*(type == PTU46_TILT ? TSMax : PSMax);
         }
 
 

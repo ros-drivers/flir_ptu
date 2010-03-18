@@ -90,7 +90,7 @@ void PTU46_Node::Connect() {
     m_node.setParam("max_tilt_speed", m_pantilt->GetMaxSpeed(PTU46_TILT));
     m_node.setParam("tilt_step", m_pantilt->GetResolution(PTU46_TILT));
 
-    m_node.setParam("min_pan", m_pantilt->GetMax(PTU46_PAN));
+    m_node.setParam("min_pan", m_pantilt->GetMin(PTU46_PAN));
     m_node.setParam("max_pan", m_pantilt->GetMax(PTU46_PAN));
     m_node.setParam("min_pan_speed", m_pantilt->GetMinSpeed(PTU46_PAN));
     m_node.setParam("max_pan_speed", m_pantilt->GetMaxSpeed(PTU46_PAN));
