@@ -6,8 +6,11 @@ from logitech_pantilt.msg import PanTilt
 import actionlib
 import ptu_control.msg
 
+PAN_RANGE  = 70
+TILT_RANGE = 30
+
 class PTUControl(object):
-	# setup some variables to keep track of the PTU's state
+	# setup some variables to keep track of the PTU's state (in degrees)
 	pan      = 0
 	tilt     = 0
 	pan_vel  = 0
@@ -21,21 +24,37 @@ class PTUControl(object):
 	def __init__(self):
 		self.as_goto = actionlib.SimpleActionServer('SetPTUState', \
 		     ptu_control.msg.PtuGotoAction, execute_cb=self.cb_goto)
-		self.as_setvel = actionlib.SimpleActionServer('SetPTUState', \
-			 ptu_control.msg.PtuGotoAction, execute_cb=self.cb_setvel)
+		# self.as_setvel = actionlib.SimpleActionServer('SetPTUState', \
+		# 	 ptu_control.msg.PtuGotoAction, execute_cb=self.cb_setvel)
 	def cb_goto(self, msg):
 		pan, tilt, pan_vel, tilt_vel = msg.pan, msg.tilt, msg.pan_vel, msg.tilt_vel
-		if pan_vel == 0 and tilt_vel == 0: # no vel defined, just go there
-			pass
-		else: # go at the specified velocity
-			pass
-	
-	def cb_setvel(self, msg):
-		pan_vel = msg.pan_vel
-		tilt_vel = msg.tilt_vel
+		# if pan_vel == 0 and tilt_vel == 0: # no vel defined, just go there
+		pan = min(pan, PAN_RANGE)
+		pan = max(pan, -PAN_RANGE)
+		tilt = min(tilt, TILT_RANGE)
+		tilt = max(tilt, -TILT_RANGE)
 		
+		pan_cmd  = pan  - self.pan
+		tilt_cmd = tilt - self.tilt
+		
+		self.pan  = pan
+		self.tilt = tilt
+		
+		result = ptu_control.msg.PtuGotoActionFeedback()
+		result.state.position = [pan, tilt]
+		result.header.stamp = rospy.time.now()
+		self.as_goto.set_succeeded(result)
+		
+		# else: # go at the specified velocity
+			
+	
+	# def cb_setvel(self, msg):
+	# 	pan_vel = msg.pan_vel
+	# 	tilt_vel = msg.tilt_vel
+	# 	self.ptu_pub.publish()
 
 		
 if __name__ == '__main__':
 	rospy.init_node('ptu_node')
 	PTUControl()
+	rospy.spin()
