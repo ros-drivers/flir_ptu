@@ -12,13 +12,6 @@ if __name__ == '__main__':
 	pt = PanTilt(0,0,True)
 	pt_pub.publish(pt)
 	rospy.sleep(0.5)
-	#while not rospy.is_shutdown():
-	#	pt = PanTilt()
-	#	pt.pan = -2
-	#	pt.tilt = -2
-	#	pt.reset = False
-	#	pt_pub.publish(pt)
-		#rospy.sleep(0.01)
 		
 	#move CCW
 	for i in range(140/PAN_STEP+1):
