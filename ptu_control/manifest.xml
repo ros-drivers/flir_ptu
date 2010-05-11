@@ -1,0 +1,19 @@
+<package>
+  <description brief="ptu_control">
+
+     ptu_control
+
+  </description>
+  <author>Dan Lazewatsky</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/ptu_control</url>
+  <depend package="rospy"/>
+  <depend package="actionlib"/>
+  <depend package="actionlib_msgs"/>
+  <depend package="sensor_msgs"/>
+  <depend package="std_msgs"/>
+  <!-- <depend package="logitech_pantilt"/> -->
+</package>
+
+

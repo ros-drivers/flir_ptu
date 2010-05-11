@@ -1,0 +1,11 @@
+# goal
+float32 pan
+float32 tilt
+float32 pan_vel
+float32 tilt_vel
+---
+# result
+sensor_msgs/JointState state
+---
+# feedback
+sensor_msgs/JointState state
