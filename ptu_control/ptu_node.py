@@ -16,19 +16,15 @@ class PTUControl(object):
 	pan_vel  = 0
 	tilt_vel = 0
 	
-	# setup the subscribers and publishers
-	joint_sub = rospy.Subscriber('cmd', JointState, self.set_goal)
-	joint_pub = rospy.Publisher('state', JointState)
-	ptu_pub   = rospy.Publisher('/pantilt', PanTilt)
-	
 	def __init__(self):
+		# setup the subscribers and publishers
+		self.joint_pub = rospy.Publisher('state', JointState)
+		self.ptu_pub   = rospy.Publisher('/pantilt', PanTilt)
 		self.as_goto = actionlib.SimpleActionServer('SetPTUState', \
 		     ptu_control.msg.PtuGotoAction, execute_cb=self.cb_goto)
-		# self.as_setvel = actionlib.SimpleActionServer('SetPTUState', \
-		# 	 ptu_control.msg.PtuGotoAction, execute_cb=self.cb_setvel)
+
 	def cb_goto(self, msg):
 		pan, tilt, pan_vel, tilt_vel = msg.pan, msg.tilt, msg.pan_vel, msg.tilt_vel
-		# if pan_vel == 0 and tilt_vel == 0: # no vel defined, just go there
 		pan = min(pan, PAN_RANGE)
 		pan = max(pan, -PAN_RANGE)
 		tilt = min(tilt, TILT_RANGE)
@@ -40,19 +36,11 @@ class PTUControl(object):
 		self.pan  = pan
 		self.tilt = tilt
 		
-		result = ptu_control.msg.PtuGotoActionFeedback()
-		result.state.position = [pan, tilt]
-		result.header.stamp = rospy.time.now()
-		self.as_goto.set_succeeded(result)
+		self.ptu_pub.publish(PanTilt(pan=pan_cmd,tilt=tilt_cmd,reset=False))
 		
-		# else: # go at the specified velocity
-			
-	
-	# def cb_setvel(self, msg):
-	# 	pan_vel = msg.pan_vel
-	# 	tilt_vel = msg.tilt_vel
-	# 	self.ptu_pub.publish()
-
+		result = ptu_control.msg.PtuGotoResult()
+		result.state.position = [pan, tilt]
+		self.as_goto.set_succeeded(result)
 		
 if __name__ == '__main__':
 	rospy.init_node('ptu_node')
