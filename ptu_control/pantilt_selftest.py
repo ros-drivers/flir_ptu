@@ -7,8 +7,8 @@ PAN_STEP   = 2
 TILT_STEP  = 2
 SLEEP_TIME = 0.08
 
-PAN_RANGE = 189
-TILT_RANGE = 102
+PAN_RANGE = 160
+TILT_RANGE = 70
 
 if __name__ == '__main__':
 	rospy.init_node('pantilt_selftest')
