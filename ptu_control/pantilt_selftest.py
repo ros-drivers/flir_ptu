@@ -17,14 +17,14 @@ if __name__ == '__main__':
 	pt_pub.publish(pt)
 	rospy.sleep(0.5)
 	
-	pt_pub.publish(PanTilt(PAN_RANGE, 0, False))
+	pt_pub.publish(PanTilt(PAN_RANGE, TILT_RANGE, False))
 	rospy.sleep(SLEEP_TIME)
 	
-	pt_pub.publish(PanTilt(-PAN_RANGE/2, 0, False))
+	pt_pub.publish(PanTilt(-PAN_RANGE/2, -TILT_RANGE/2, False))
 	rospy.sleep(SLEEP_TIME)
 	
-	pt_pub.publish(PanTilt(0, TILT_RANGE, False))
-	rospy.sleep(SLEEP_TIME)	
+	#pt_pub.publish(PanTilt(0, TILT_RANGE, False))
+	#rospy.sleep(SLEEP_TIME)	
 
-	pt_pub.publish(PanTilt(0, -TILT_RANGE/2, False))
-	rospy.sleep(SLEEP_TIME)
+	#pt_pub.publish(PanTilt(0, -TILT_RANGE/2, False))
+	#rospy.sleep(SLEEP_TIME)
