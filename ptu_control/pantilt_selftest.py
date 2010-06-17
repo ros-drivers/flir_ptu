@@ -1,7 +1,8 @@
 #!/usr/bin/env python
-import roslib; roslib.load_manifest('missouri_telepresence')
+import roslib; roslib.load_manifest('ptu_control')
 import rospy
 from logitech_pantilt.msg import PanTilt
+from ptu_control.Calibration import pantiltReset
 
 PAN_STEP   = 2
 TILT_STEP  = 2
@@ -17,14 +18,4 @@ if __name__ == '__main__':
 	pt_pub.publish(pt)
 	rospy.sleep(0.5)
 	
-	pt_pub.publish(PanTilt(PAN_RANGE, TILT_RANGE, False))
-	rospy.sleep(SLEEP_TIME)
-	
-	pt_pub.publish(PanTilt(-PAN_RANGE/2, -TILT_RANGE/2, False))
-	rospy.sleep(SLEEP_TIME)
-	
-	#pt_pub.publish(PanTilt(0, TILT_RANGE, False))
-	#rospy.sleep(SLEEP_TIME)	
-
-	#pt_pub.publish(PanTilt(0, -TILT_RANGE/2, False))
-	#rospy.sleep(SLEEP_TIME)
+	pantiltReset(pt_pub)
