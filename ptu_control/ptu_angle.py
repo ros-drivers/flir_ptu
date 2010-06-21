@@ -1,17 +1,24 @@
 #!/usr/bin/env python
 import roslib; roslib.load_manifest('ptu_control')
 from optic_flow.msg import FlowField
-from std_msgs.msg import Int64
+from std_msgs.msg import Float64
 import rospy
 import numpy as np
 import pylab
+from math import acos, pi, degrees
 
 class FlowAccumulator(object):
 	accum = None
 	def __init__(self):
+		self.FOV = pi/3
+		self.CENTER_COL = 300
+		
 		rospy.Subscriber('/flow', FlowField, self.flow_cb)
-		self.center_pub = rospy.Publisher('/ptu_center_estimate', Int64)
+		self.center_pub = rospy.Publisher('/ptu_center_estimate', Float64)
 		rospy.spin()
+		
+	def angle_from_col(self, col):
+		return self.FOV * col / float(len(self.accum))
 		
 	def flow_cb(self, flow_msg):
 		if self.accum == None:
@@ -21,8 +28,8 @@ class FlowAccumulator(object):
 		flow_vectors = np.array(feat_b) - np.array(feat_a)
 		for pt, v in zip(feat_a, flow_vectors):
 			self.accum[pt[0]] = (self.accum[pt[0]] + v[0])/2
-		self.center_pub.publish(self.find_center())
-		# TODO this is the center pixel, need to convert to angle
+		angle = self.angle_from_col(self.find_center()) - self.angle_from_col(self.CENTER_COL)
+		self.center_pub.publish(degrees(angle))
 	
 	def find_center(self):
 		mu = np.mean(self.accum)
