@@ -13,8 +13,10 @@
   <depend package="actionlib_msgs"/>
   <depend package="sensor_msgs"/>
   <depend package="std_msgs"/>
+  <depend package="nav_msgs"/>
   <depend package="logitech_pantilt"/>
   <depend package="optic_flow"/>
 </package>
+
 
 
