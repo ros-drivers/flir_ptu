@@ -24,7 +24,7 @@ class PTUControl(object):
 		self.ptu_pub   = rospy.Publisher('/pantilt', PanTilt)
 		self.as_goto = actionlib.SimpleActionServer('SetPTUState', \
 		     ptu_control.msg.PtuGotoAction, execute_cb=self.cb_goto)
-		rospy.Subscriber('ground_truth_pantilt', PanTilt, self.ground_truth_cb, 1)
+		rospy.Subscriber('ground_truth_pantilt', PanTilt, self.ground_truth_cb)
 
 	def cb_goto(self, msg):
 		self.state_lock.acquire()
@@ -50,7 +50,7 @@ class PTUControl(object):
 	def ground_truth_cb(self, msg):
 		self.state_lock.acquire()
 		self.pan = msg.pan
-		self.tilt = tilt
+		self.tilt = msg.tilt
 		self.state_lock.release()
 		
 if __name__ == '__main__':
