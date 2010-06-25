@@ -60,7 +60,7 @@ class VisualCalibration(object):
 		
 		# while not rospy.is_shutdown():
 		try:
-			for trial in range(10):
+			for trial in range(10000):
 				if rospy.is_shutdown(): break
 				pan = randint(-PAN_RANGE,PAN_RANGE)
 				tilt = randint(-TILT_RANGE,TILT_RANGE)
@@ -80,10 +80,11 @@ class VisualCalibration(object):
 			
 				corners = cv.FindChessboardCorners(img, (8,6))
 				if corners[0]:
-					
 					cb_center = FindChessboardCenter(corners[1])
 					self.data['cb_centers'].append(cb_center)
 					cv.DrawChessboardCorners(img, (8,6), corners[1], corners[0])
+					cb_pantilt = self.angle_from_cb_center(cb_center) - self.offset
+					self.ground_truth_pub.publish(PanTilt(cb_pantilt[0], cb_pantilt[1], 0))
 				else:
 					self.data['cb_centers'].append((np.nan, np.nan))
 				c = (int(orig_cb_center[0]), int(orig_cb_center[1]))
@@ -96,8 +97,6 @@ class VisualCalibration(object):
 				self.last_pt = np.array((float(pan), float(tilt)))
 				self.data['actions'].append(action)
 				
-				cb_pantilt = self.angle_from_cb_center(cb_center) - self.offset
-				self.ground_truth_pub.publish(PanTilt(cb_pantilt[0], cb_pantilt[1], 0))
 				self.data['ground_truth'].append(cb_pantilt)
 				print '%s: estimated pan/tilt (%d,%d), true pan/tilt (%d,%d)' % \
 				tuple([trial, pan, tilt] + cb_pantilt.tolist())
