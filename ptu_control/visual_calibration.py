@@ -35,7 +35,7 @@ class VisualCalibration(object):
 	def __init__(self):
 		self.ground_truth_pub = rospy.Publisher('ground_truth_pantilt', PanTilt)
 		self.last_img_time = rospy.Time.now()
-		cv.NamedWindow('win')
+		#cv.NamedWindow('win')
 		image_sub = rospy.Subscriber('image', Image, self.image_cb)
 		self.client.wait_for_server()
 
@@ -52,18 +52,26 @@ class VisualCalibration(object):
 		print cb_center
 		cv.DrawChessboardCorners(self.last_img, (8,6), corners[1], corners[0])
 		self.offset = self.angle_from_cb_center(cb_center)
-		cv.ShowImage('win', self.last_img)
-		cv.WaitKey(10)
+		#cv.ShowImage('win', self.last_img)
+		#cv.WaitKey(10)
 		print self.offset
 		# import sys; sys.exit()
 		
 		
 		# while not rospy.is_shutdown():
 		try:
+			recenter_ct = 0
+			recenter = False
 			for trial in range(10000):
 				if rospy.is_shutdown(): break
-				pan = randint(-PAN_RANGE,PAN_RANGE)
-				tilt = randint(-TILT_RANGE,TILT_RANGE)
+				if recenter:
+					pan = 0
+					tilt = 0
+				elif recenter_ct > 5:
+					pass
+				else:
+					pan = randint(-PAN_RANGE,PAN_RANGE)
+					tilt = randint(-TILT_RANGE,TILT_RANGE)
 				# print 'trial: %s \t -> (%s, %s)' % (trial, pan, tilt)
 			
 				goal = ptu_control.msg.PtuGotoGoal(pan=pan, tilt=tilt)
@@ -85,13 +93,15 @@ class VisualCalibration(object):
 					cv.DrawChessboardCorners(img, (8,6), corners[1], corners[0])
 					cb_pantilt = self.angle_from_cb_center(cb_center) - self.offset
 					self.ground_truth_pub.publish(PanTilt(cb_pantilt[0], cb_pantilt[1], 0))
+					recenter = False
 				else:
 					self.data['cb_centers'].append((np.nan, np.nan))
+					recenter = True
 				c = (int(orig_cb_center[0]), int(orig_cb_center[1]))
 				cv.Circle(img, c, 2, (255,0,0), thickness=2)
 				cv.SaveImage('calib_images/%sim_%s_%s.png' % (trial, pan, tilt), img)
 			
-				cv.ShowImage('win', img)
+				#cv.ShowImage('win', img)
 				cv.WaitKey(10)
 				action = (float(pan), float(tilt)) - self.last_pt
 				self.last_pt = np.array((float(pan), float(tilt)))
@@ -101,8 +111,7 @@ class VisualCalibration(object):
 				print '%s: estimated pan/tilt (%d,%d), true pan/tilt (%d,%d)' % \
 				tuple([trial, pan, tilt] + cb_pantilt.tolist())
 		except KeyboardInterrupt: pass
-		savemat('/Users/lazewatskyd/ros/wu-ros-pkg/missouri/ptu_control/calib_data.mat',\
-		 self.data)
+		savemat('/opt/ros/packages/wu-ros-pkg/missouri/ptu_control/calib_data.mat', self.data)
 
 	def image_cb(self, msg):
 		self.last_img = self.bridge.imgmsg_to_cv(msg, 'passthrough')
