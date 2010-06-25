@@ -36,11 +36,11 @@ class VisualCalibration(object):
 	def __init__(self):
 		self.ground_truth_pub = rospy.Publisher('ground_truth_pantilt', PanTilt)
 		self.last_img_time = rospy.Time.now()
-		#cv.NamedWindow('win')
+		cv.NamedWindow('win')
 		image_sub = rospy.Subscriber('image', Image, self.image_cb)
 		self.client.wait_for_server()
 		self.reset_client.wait_for_server()
-		
+		rospy.sleep(2)
 		self.reset_client.send_goal(ptu_control.msg.PtuResetGoal())
 		self.reset_client.wait_for_goal_to_finish()
 		rospy.sleep(2)
@@ -57,7 +57,7 @@ class VisualCalibration(object):
 		print cb_center
 		cv.DrawChessboardCorners(self.last_img, (8,6), corners[1], corners[0])
 		self.offset = self.angle_from_cb_center(cb_center)
-		#cv.ShowImage('win', self.last_img)
+		cv.ShowImage('win', self.last_img)
 		#cv.WaitKey(10)
 		print self.offset
 		# import sys; sys.exit()
@@ -72,6 +72,9 @@ class VisualCalibration(object):
 					print "Recentering"
 					pan = 0
 					tilt = 0
+				elif recenter_ct > 10:
+					print '''There is no hope of figuring out where the PTU is.\nAbandon hope, all ye who enter here.'''
+					break
 				else:
 					pan = randint(-PAN_RANGE,PAN_RANGE)
 					tilt = randint(-TILT_RANGE,TILT_RANGE)
@@ -103,7 +106,7 @@ class VisualCalibration(object):
 				cv.Circle(img, c, 2, (255,0,0), thickness=2)
 				cv.SaveImage('calib_images/%sim_%s_%s.png' % (trial, pan, tilt), img)
 			
-				#cv.ShowImage('win', img)
+				cv.ShowImage('win', img)
 				cv.WaitKey(10)
 				action = (float(pan), float(tilt)) - self.last_pt
 				self.last_pt = np.array((float(pan), float(tilt)))
@@ -113,7 +116,8 @@ class VisualCalibration(object):
 				print '%s: estimated pan/tilt (%d,%d), true pan/tilt (%d,%d)' % \
 				tuple([trial, pan, tilt] + cb_pantilt.tolist())
 		except KeyboardInterrupt: pass
-		savemat('/opt/ros/packages/wu-ros-pkg/missouri/ptu_control/calib_data.mat', self.data)
+		# savemat('/opt/ros/packages/wu-ros-pkg/missouri/ptu_control/calib_data.mat', self.data)
+		savemat('/Users/lazewatskyd/ros/wu-ros-pkg/missouri/ptu_control/calib_data.mat', self.data)
 
 	def image_cb(self, msg):
 		self.last_img = self.bridge.imgmsg_to_cv(msg, 'passthrough')
