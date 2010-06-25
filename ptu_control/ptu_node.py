@@ -3,6 +3,7 @@ import roslib; roslib.load_manifest('ptu_control')
 import rospy
 from sensor_msgs.msg import JointState
 from logitech_pantilt.msg import PanTilt
+from ptu_control.Calibration import pantiltReset
 import actionlib
 import ptu_control.msg
 import threading
@@ -22,8 +23,10 @@ class PTUControl(object):
 		# setup the subscribers and publishers
 		self.joint_pub = rospy.Publisher('state', JointState)
 		self.ptu_pub   = rospy.Publisher('/pantilt', PanTilt)
-		self.as_goto = actionlib.SimpleActionServer('SetPTUState', \
+		self.as_goto   = actionlib.SimpleActionServer('SetPTUState', \
 		     ptu_control.msg.PtuGotoAction, execute_cb=self.cb_goto)
+		self.as_reset  = actionlib.SimpleActionServer('ResetPtu', \
+			 ptu_control.msg.PtuResetAction, execute_cb=self.cb_reset)
 		rospy.Subscriber('ground_truth_pantilt', PanTilt, self.ground_truth_cb)
 
 	def cb_goto(self, msg):
@@ -46,6 +49,15 @@ class PTUControl(object):
 		result.state.position = [pan, tilt]
 		self.state_lock.release()
 		self.as_goto.set_succeeded(result)
+		
+	def cb_reset(self, msg):
+		self.state_lock.acquire()
+		pantiltReset(self.ptu_pub)
+		result = ptu_control.msg.PtuResetResult()
+		self.pan  = 0
+		self.tilt = 0
+		self.state_lock.release()
+		self.as_reset.set_succeeded(result)
 		
 	def ground_truth_cb(self, msg):
 		self.state_lock.acquire()
