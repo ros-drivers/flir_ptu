@@ -12,13 +12,14 @@ import cv
 import numpy as np
 
 from logitech_pantilt.msg import PanTilt
-from ptu_control.Calibration import pantiltReset
+# from ptu_control.Calibration import pantiltReset
 
 def FindChessboardCenter(corners):
 	return np.average(corners, axis=0)
 
 class VisualCalibration(object):
 	client = actionlib.SimpleActionClient('SetPTUState', ptu_control.msg.PtuGotoAction)
+	reset_client = actionlib.SimpleActionClient('ResetPtu', ptu_control.msg.PtuResetAction)
 	bridge = CvBridge()
 	
 	last_img = None
@@ -38,7 +39,10 @@ class VisualCalibration(object):
 		#cv.NamedWindow('win')
 		image_sub = rospy.Subscriber('image', Image, self.image_cb)
 		self.client.wait_for_server()
-
+		self.reset_client.wait_for_server()
+		
+		self.reset_client.send_goal(ptu_control.msg.PtuResetGoal())
+		self.reset_client.wait_for_goal_to_finish()
 		# wait for images to start coming in
 		while not self.last_img and not rospy.is_shutdown():
 			rospy.sleep(0.1)
@@ -61,18 +65,14 @@ class VisualCalibration(object):
 		# while not rospy.is_shutdown():
 		try:
 			recenter_ct = 0
-			recenter = False
 			for trial in range(10000):
 				if rospy.is_shutdown(): break
-				if recenter:
+				if 2 < recenter_ct < 4 :
 					pan = 0
 					tilt = 0
-				elif recenter_ct > 5:
-					pass
 				else:
 					pan = randint(-PAN_RANGE,PAN_RANGE)
 					tilt = randint(-TILT_RANGE,TILT_RANGE)
-				# print 'trial: %s \t -> (%s, %s)' % (trial, pan, tilt)
 			
 				goal = ptu_control.msg.PtuGotoGoal(pan=pan, tilt=tilt)
 				self.client.send_goal(goal)
@@ -93,10 +93,10 @@ class VisualCalibration(object):
 					cv.DrawChessboardCorners(img, (8,6), corners[1], corners[0])
 					cb_pantilt = self.angle_from_cb_center(cb_center) - self.offset
 					self.ground_truth_pub.publish(PanTilt(cb_pantilt[0], cb_pantilt[1], 0))
-					recenter = False
+					recenter_ct = 0
 				else:
 					self.data['cb_centers'].append((np.nan, np.nan))
-					recenter = True
+					recenter_ct += 1
 				c = (int(orig_cb_center[0]), int(orig_cb_center[1]))
 				cv.Circle(img, c, 2, (255,0,0), thickness=2)
 				cv.SaveImage('calib_images/%sim_%s_%s.png' % (trial, pan, tilt), img)
@@ -126,10 +126,10 @@ if __name__ == '__main__':
 	rospy.init_node('visual_calibration')
 	
 	pt_pub = rospy.Publisher('/pantilt', PanTilt)
-	pt = PanTilt(0,0,True)
-	pt_pub.publish(pt)
-	rospy.sleep(0.5)
+	# pt = PanTilt(0,0,True)
+	# pt_pub.publish(pt)
+	# rospy.sleep(0.5)
 
-	pantiltReset(pt_pub)
+	# pantiltReset(pt_pub)
 	
 	VisualCalibration()
