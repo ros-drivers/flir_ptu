@@ -17,7 +17,10 @@ def getCenterPixelFromCalib(img):
 	W, H = cv.GetSize(img)
 	result = cv.CreateImage((W-w+1, H-h+1), cv.IPL_DEPTH_32F, 1)
 	cv.MatchTemplate(img, TEMPLATE, result, cv.CV_TM_SQDIFF_NORMED)
-	return cv.MinMaxLoc(result)[2]
+	locs = cv.MinMaxLoc(result)[2]
+	locs[0] += TEMPLATE.width/2
+	locs[1] += TEMPLATE.height/2
+	return locs
 	
 def pantiltReset(publisher):
 	publisher.publish(PanTilt(PAN_RANGE, TILT_RANGE, False))
