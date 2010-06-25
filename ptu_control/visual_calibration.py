@@ -43,6 +43,7 @@ class VisualCalibration(object):
 		
 		self.reset_client.send_goal(ptu_control.msg.PtuResetGoal())
 		self.reset_client.wait_for_goal_to_finish()
+		rospy.sleep(2)
 		# wait for images to start coming in
 		while not self.last_img and not rospy.is_shutdown():
 			rospy.sleep(0.1)
@@ -68,6 +69,7 @@ class VisualCalibration(object):
 			for trial in range(10000):
 				if rospy.is_shutdown(): break
 				if 2 < recenter_ct < 4 :
+					print "Recentering"
 					pan = 0
 					tilt = 0
 				else:
