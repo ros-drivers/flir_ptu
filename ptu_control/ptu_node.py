@@ -28,6 +28,9 @@ class PTUControl(object):
 		self.as_reset  = actionlib.SimpleActionServer('ResetPtu', \
 			 ptu_control.msg.PtuResetAction, execute_cb=self.cb_reset)
 		rospy.Subscriber('ground_truth_pantilt', PanTilt, self.ground_truth_cb)
+		
+		rospy.sleep(1.0)
+		pantiltReset(self.ptu_pub)
 
 	def cb_goto(self, msg):
 		self.state_lock.acquire()
@@ -43,12 +46,16 @@ class PTUControl(object):
 		self.pan  = pan
 		self.tilt = tilt
 		
-		self.ptu_pub.publish(PanTilt(pan=pan_cmd,tilt=tilt_cmd,reset=False))
+		if pan_cmd == 0 and tilt_cmd == 0:
+			pass
+		else:
+			self.ptu_pub.publish(PanTilt(pan=pan_cmd,tilt=tilt_cmd,reset=False))
 		
 		result = ptu_control.msg.PtuGotoResult()
 		result.state.position = [pan, tilt]
 		self.state_lock.release()
 		self.as_goto.set_succeeded(result)
+		#TODO figure out when we're actually finished
 		
 	def cb_reset(self, msg):
 		self.state_lock.acquire()
