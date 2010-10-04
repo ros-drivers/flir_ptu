@@ -46,7 +46,7 @@ class PTUControl(object):
 		pan_cmd  = pan  - self.pan
 		tilt_cmd = tilt - self.tilt
 		
-		self.pan, self.tilt = kf.control((pan_cmd, tilt_cmd))
+		self.pan, self.tilt = self.kf.control((pan_cmd, tilt_cmd))
 		
 		# self.pan  = pan
 		# self.tilt = tilt
@@ -63,7 +63,7 @@ class PTUControl(object):
 		#TODO figure out when we're actually finished
 		
 	def cb_reset(self, msg):
-		kf.__init__()
+		self.kf.__init__()
 		
 		self.state_lock.acquire()
 		pantiltReset(self.ptu_pub)
@@ -77,7 +77,7 @@ class PTUControl(object):
 		self.state_lock.acquire()
 		# self.pan = msg.pan
 		# self.tilt = msg.tilt
-		self.pan, self.tilt = kf.control((msg.pan, msg.tilt))
+		self.pan, self.tilt = self.kf.control((msg.pan, msg.tilt))
 		self.state_lock.release()
 		
 if __name__ == '__main__':
