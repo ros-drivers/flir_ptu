@@ -5,7 +5,7 @@ from sensor_msgs.msg import JointState
 from logitech_pantilt.msg import PanTilt
 from ptu_control.Calibration import pantiltReset
 import actionlib
-import ptu_control.msg
+import ptu_control
 import threading
 
 PAN_RANGE  = 70
@@ -18,6 +18,8 @@ class PTUControl(object):
 	pan_vel  = 0
 	tilt_vel = 0
 	state_lock = threading.Lock()
+	
+	kf = ptu_control.ptu_tracker.PanTiltKF()
 	
 	def __init__(self):
 		# setup the subscribers and publishers
@@ -39,12 +41,14 @@ class PTUControl(object):
 		pan = max(pan, -PAN_RANGE)
 		tilt = min(tilt, TILT_RANGE)
 		tilt = max(tilt, -TILT_RANGE)
-		
+				
 		pan_cmd  = pan  - self.pan
 		tilt_cmd = tilt - self.tilt
 		
-		self.pan  = pan
-		self.tilt = tilt
+		self.pan, self.tilt = kf.control((pan_cmd, tilt_cmd))
+		
+		# self.pan  = pan
+		# self.tilt = tilt
 		
 		if pan_cmd == 0 and tilt_cmd == 0:
 			pass
@@ -58,6 +62,8 @@ class PTUControl(object):
 		#TODO figure out when we're actually finished
 		
 	def cb_reset(self, msg):
+		kf.__init__()
+		
 		self.state_lock.acquire()
 		pantiltReset(self.ptu_pub)
 		result = ptu_control.msg.PtuResetResult()
@@ -68,8 +74,9 @@ class PTUControl(object):
 		
 	def ground_truth_cb(self, msg):
 		self.state_lock.acquire()
-		self.pan = msg.pan
-		self.tilt = msg.tilt
+		# self.pan = msg.pan
+		# self.tilt = msg.tilt
+		self.pan, self.tilt = kf.control((msg.pan, msg.tilt))
 		self.state_lock.release()
 		
 if __name__ == '__main__':
