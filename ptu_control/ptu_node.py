@@ -5,7 +5,8 @@ from sensor_msgs.msg import JointState
 from logitech_pantilt.msg import PanTilt
 from ptu_control.Calibration import pantiltReset
 import actionlib
-import ptu_control
+import ptu_control.ptu_tacker
+import ptu_control.msg
 import threading
 
 PAN_RANGE  = 70
