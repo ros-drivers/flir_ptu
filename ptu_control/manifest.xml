@@ -16,6 +16,11 @@
   <depend package="nav_msgs"/>
   <depend package="logitech_pantilt"/>
   <depend package="optic_flow"/>
+    
+  <export>
+    <cpp cflags="-I${prefix}/msg/cpp -I${prefix}/srv/cpp
+  -I${prefix}/include"
+  </export>
 </package>
 
 
