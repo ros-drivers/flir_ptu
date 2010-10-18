@@ -35,12 +35,12 @@ class PTUControl(object):
 			 ptu_control.msg.PtuResetAction, execute_cb=self.cb_reset)
 		rospy.Subscriber('ground_truth_pantilt', PanTilt, self.ground_truth_cb)
 		
-		br = tf.TransformBroadcaster()
+		self.br = tf.TransformBroadcaster()
 		threading.Thread(target=self.send_transform).start()
     		
-	if reset:
-		rospy.sleep(1.0)
-		pantiltReset(self.ptu_pub)
+		if reset:
+			rospy.sleep(1.0)
+			pantiltReset(self.ptu_pub)
 
 	def cb_goto(self, msg):
 		self.state_lock.acquire()
@@ -67,17 +67,7 @@ class PTUControl(object):
 		result.state.position = [self.pan, self.tilt]
 		self.state_lock.release()
 		self.as_goto.set_succeeded(result)
-		
-		m = geometry_msgs.msg.TransformStamped()
-		m.header.frame_id = 'ptu'
-
-		m.transform.rotation.x = quat[0]
-		m.transform.rotation.y = quat[1]
-		m.transform.rotation.z = quat[2]
-		m.transform.rotation.w = quat[3]
-		
-		
-		
+			
 		#TODO figure out when we're actually finished
 		
 	def cb_reset(self, msg):
@@ -100,14 +90,16 @@ class PTUControl(object):
 		
 		
 	def send_transform(self):
+		rate = rospy.Rate(10)
 		while not rospy.is_shutdown():
 			self.br.sendTransform(
-				(0,0,0)
-				quat = tf.transformations.quaternion_from_euler(0, self.tilt, self.pan),
+				(0,0,0),
+				tf.transformations.quaternion_from_euler(0, self.tilt, self.pan),
 				rospy.Time.now(),
 				'ptu',
 				'odom'
 			)
+			rate.sleep()
 		
 if __name__ == '__main__':
 	rospy.init_node('ptu_node')
