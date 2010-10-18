@@ -9,6 +9,9 @@ import ptu_control.ptu_tracker
 import ptu_control.msg
 import threading
 
+import tf
+import geometry_msgs.msg
+
 PAN_RANGE  = 70
 TILT_RANGE = 30
 
@@ -22,7 +25,7 @@ class PTUControl(object):
 	
 	kf = ptu_control.ptu_tracker.PanTiltKF()
 	
-	def __init__(self):
+	def __init__(self, reset=True):
 		# setup the subscribers and publishers
 		self.joint_pub = rospy.Publisher('state', JointState)
 		self.ptu_pub   = rospy.Publisher('/pantilt', PanTilt)
@@ -32,6 +35,10 @@ class PTUControl(object):
 			 ptu_control.msg.PtuResetAction, execute_cb=self.cb_reset)
 		rospy.Subscriber('ground_truth_pantilt', PanTilt, self.ground_truth_cb)
 		
+		br = tf.TransformBroadcaster()
+		threading.Thread(target=self.send_transform).start()
+    		
+	if reset:
 		rospy.sleep(1.0)
 		pantiltReset(self.ptu_pub)
 
@@ -47,7 +54,7 @@ class PTUControl(object):
 		tilt_cmd = tilt - self.tilt
 		
 		self.pan, self.tilt = self.kf.control((pan_cmd, tilt_cmd))
-		
+				
 		# self.pan  = pan
 		# self.tilt = tilt
 		
@@ -57,9 +64,20 @@ class PTUControl(object):
 			self.ptu_pub.publish(PanTilt(pan=pan_cmd,tilt=tilt_cmd,reset=False))
 		
 		result = ptu_control.msg.PtuGotoResult()
-		result.state.position = [pan, tilt]
+		result.state.position = [self.pan, self.tilt]
 		self.state_lock.release()
 		self.as_goto.set_succeeded(result)
+		
+		m = geometry_msgs.msg.TransformStamped()
+		m.header.frame_id = 'ptu'
+
+		m.transform.rotation.x = quat[0]
+		m.transform.rotation.y = quat[1]
+		m.transform.rotation.z = quat[2]
+		m.transform.rotation.w = quat[3]
+		
+		
+		
 		#TODO figure out when we're actually finished
 		
 	def cb_reset(self, msg):
@@ -77,8 +95,19 @@ class PTUControl(object):
 		self.state_lock.acquire()
 		# self.pan = msg.pan
 		# self.tilt = msg.tilt
-		self.pan, self.tilt = self.kf.control((msg.pan, msg.tilt))
+		self.pan, self.tilt = self.kf.measurement((msg.pan, msg.tilt))
 		self.state_lock.release()
+		
+		
+	def send_transform(self):
+		while not rospy.is_shutdown():
+			self.br.sendTransform(
+				(0,0,0)
+				quat = tf.transformations.quaternion_from_euler(0, self.tilt, self.pan),
+				rospy.Time.now(),
+				'ptu',
+				'odom'
+			)
 		
 if __name__ == '__main__':
 	rospy.init_node('ptu_node')
