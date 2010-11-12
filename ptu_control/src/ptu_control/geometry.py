@@ -20,6 +20,14 @@ def euler_from_homography(H, K):
 	#assert np.allclose((z.T*z), np.eye(4)), 'z is not a rotation matrix'
 
 	return euler_from_matrix(z)
+	
+def y_rot_from_homography(H, K):
+	q, r = np.linalg.qr(K.I*H*K)
+	return np.average([np.arccos(q[0,0]),
+					   np.arcsin(q[0,2]),
+					  -np.arcsin(q[2,0]),
+					   np.arccos(q[2,2])
+					])
 
 if __name__ == '__main__':
 	# Homography
