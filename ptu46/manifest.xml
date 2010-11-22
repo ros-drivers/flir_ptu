@@ -9,5 +9,8 @@
   <depend package="tf"/>
   <depend package="sensor_msgs"/>
   <depend package="roscpp"/>
+  <depend package="rospy"/>
+  <depend package="actionlib"/>
+  <depend package="ptu_control"/>
 </package>
 
