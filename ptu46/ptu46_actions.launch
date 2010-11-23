@@ -1,0 +1,10 @@
+<launch>
+	<node name="ptu" pkg="ptu46" type="ptu46" output="screen">
+		<param name="port" value="/dev/ttyUSB0"/>
+	</node>
+	<node name="ptu_action_server" pkg="ptu46" type="ptu_action_server.py" output="screen">
+		<remap from="cmd" to="/ptu/cmd"/>
+		<remap from="state" to="/ptu/state"/>
+	</node>
+	<!--node name="chat_cam" pkg="webcam_server" type="webcam_topic_server"/-->
+</launch>
