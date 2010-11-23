@@ -10,7 +10,7 @@ def ptu_action_test():
 	client.wait_for_server()
 	goal = ptu_control.msg.PtuGotoGoal(pan=float(sys.argv[1]), tilt=float(sys.argv[2]))
 	client.send_goal(goal)
-	client.wait_for_goal_to_finish()
+	client.wait_for_result()
 	return client.get_result()
 	
 if __name__ == '__main__':
