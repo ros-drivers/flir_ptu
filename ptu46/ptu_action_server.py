@@ -28,9 +28,10 @@ class PTUControl(object):
 		self.ptu_pub = rospy.Publisher('cmd', JointState)
 		self.as_goto = actionlib.SimpleActionServer('SetPTUState', \
 		     ptu_control.msg.PtuGotoAction, execute_cb=self.cb_goto)
+		self.as_reset  = actionlib.SimpleActionServer('ResetPtu', \
+			 ptu_control.msg.PtuResetAction, execute_cb=self.cb_reset)
 	
 	def cb_goto(self, msg):
-		
 		pan, tilt, pan_vel, tilt_vel = np.radians((msg.pan, msg.tilt, msg.pan_vel, msg.tilt_vel))
 
 		if not pan_vel:
@@ -38,8 +39,19 @@ class PTUControl(object):
 		if not tilt_vel:
 			tilt_vel = self.tsmax
 
-		#tilt_vel = pan_vel = 1
+		self._goto(pan, tilt, pan_vel, tilt_vel)
+
+		result = ptu_control.msg.PtuGotoResult()
+		result.state.position = self._get_state()
+		self.as_goto.set_succeeded(result)
 		
+	def cb_reset(self, msg):
+		self._goto(0,0, self.psmax, self.tsmax)
+		result = ptu_control.msg.PtuResetResult()
+		self.as_reset.set_succeeded(result)
+
+	def _goto(self, pan, tilt, pan_vel, tilt_vel):
+		rospy.loginfo('going to (%s, %s)' % (pan, tilt))
 		msg_out = JointState()
 		msg_out.header.stamp = rospy.Time.now()
 		msg_out.name = ['head_pan_joint', 'head_tilt_joint']
@@ -48,24 +60,20 @@ class PTUControl(object):
 		self.ptu_pub.publish(msg_out)
 		# wait for it to get there
 		wait_rate = rospy.Rate(10)
-		while not self._at_goal((msg.pan, msg.tilt)) and not rospy.is_shutdown():
+		while not self._at_goal((pan, tilt)) and not rospy.is_shutdown():
 			wait_rate.sleep()
-		result = ptu_control.msg.PtuGotoResult()
-		result.state.position = self._get_state()
-		self.as_goto.set_succeeded(result)
-		
 
 	def _at_goal(self, goal):
 		return all(np.abs(np.array(goal) - (self.pan, self.tilt)) <= np.degrees((self.pstep, self.tstep)))
 
 	def cb_ptu_state(self, msg):
 		self.state_lock.acquire()
-		self.pan, self.tilt = np.degrees(msg.position)
+		self.pan, self.tilt = msg.position
 		self.state_lock.release()
 
 	def _get_state(self):
 		self.state_lock.acquire()
-		pt = self.pan, self.tilt
+		pt = np.degrees((self.pan, self.tilt))
 		self.state_lock.release()
 		return pt
 
