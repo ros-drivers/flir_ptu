@@ -12,8 +12,6 @@ import threading
 import tf
 import geometry_msgs.msg
 
-PAN_RANGE  = 70
-TILT_RANGE = 30
 
 class PTUControl(object):
 	# setup some variables to keep track of the PTU's state (in degrees)
@@ -26,6 +24,12 @@ class PTUControl(object):
 	kf = ptu_control.ptu_tracker.PanTiltKF()
 	
 	def __init__(self, reset=True):
+		self.PAN_RANGE		= rospy.get_param('pan_range', 70)
+		self.TILT_RANGE		= rospy.get_param('tilt_range', 30)
+		self.PARENT_FRAME	= rospy.get_param('parent_frame', 'odom')
+		self.PTU_FRAME		= rospy.get_param('parent_frame', 'ptu')
+		
+		
 		# setup the subscribers and publishers
 		self.joint_pub = rospy.Publisher('state', JointState)
 		self.ptu_pub   = rospy.Publisher('/pantilt', PanTilt)
@@ -45,10 +49,10 @@ class PTUControl(object):
 	def cb_goto(self, msg):
 		self.state_lock.acquire()
 		pan, tilt, pan_vel, tilt_vel = msg.pan, msg.tilt, msg.pan_vel, msg.tilt_vel
-		pan = min(pan, PAN_RANGE)
-		pan = max(pan, -PAN_RANGE)
-		tilt = min(tilt, TILT_RANGE)
-		tilt = max(tilt, -TILT_RANGE)
+		pan = min(pan, self.PAN_RANGE)
+		pan = max(pan, -self.PAN_RANGE)
+		tilt = min(tilt, self.TILT_RANGE)
+		tilt = max(tilt, -self.TILT_RANGE)
 				
 		pan_cmd  = pan  - self.pan
 		tilt_cmd = tilt - self.tilt
@@ -96,8 +100,8 @@ class PTUControl(object):
 				(0,0,0),
 				tf.transformations.quaternion_from_euler(0, self.tilt, self.pan),
 				rospy.Time.now(),
-				'ptu',
-				'odom'
+				self.PTU_FRAME,
+				self.PARENT_FRAME
 			)
 			rate.sleep()
 		

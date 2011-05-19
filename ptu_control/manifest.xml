@@ -1,7 +1,7 @@
 <package>
   <description brief="ptu_control">
 
-     ptu_control
+     Provides an actionlib interface for PTUs which listen for JointState messages (such as PTU46)
 
   </description>
   <author>Dan Lazewatsky</author>
@@ -15,8 +15,8 @@
   <depend package="sensor_msgs"/>
   <depend package="std_msgs"/>
   <depend package="nav_msgs"/>
-  <depend package="logitech_pantilt"/>
-  <depend package="optic_flow"/>
+  <!-- <depend package="logitech_pantilt"/> -->
+  <!-- <depend package="optic_flow"/> -->
   <depend package="tf"/>
     
   <export>

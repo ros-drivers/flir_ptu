@@ -1,8 +1,0 @@
-<launch>
-	<node name="ptu_node" pkg="ptu_control" type="ptu_node.py"/>
-	<node name="republish" type="republish" pkg="image_transport" args="compressed">
-		<remap from="in" to="chat_cam/image_raw"/>
-		<remap from="out" to="image"/>
-	</node>
-	<node name="visual_calibration" type="visual_calibration.py" pkg="ptu_control" output="screen"/>
-</launch>
