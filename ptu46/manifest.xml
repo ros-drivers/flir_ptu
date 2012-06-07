@@ -2,9 +2,8 @@
   <description brief="Directed Perception ptu46 pan/tilt driver">
      Driver for the Directed Perception ptu46 pan/tilt driver, forked from player
   </description>
-  <author>Erik Karulf, David Lu</author>
+  <author>Erik Karulf, David V. Lu!!</author>
   <license>GPL</license>
-  <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/ptu46</url>
   <depend package="tf"/>
   <depend package="sensor_msgs"/>
