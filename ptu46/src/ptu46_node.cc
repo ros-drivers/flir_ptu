@@ -171,6 +171,8 @@ void PTU46_Node::spinOnce() {
     joint_state.velocity[1] = tiltspeed;
     m_joint_pub.publish(joint_state);
 
+    m_updater->update();
+
 }
 
 } // PTU46 namespace
