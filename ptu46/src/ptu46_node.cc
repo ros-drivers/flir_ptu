@@ -2,6 +2,8 @@
 #include <ros/ros.h>
 #include <ptu46/ptu46_driver.h>
 #include <sensor_msgs/JointState.h>
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
 
 namespace PTU46 {
 
@@ -42,7 +44,10 @@ class PTU46_Node {
         // Callback Methods
         void SetGoal(const sensor_msgs::JointState::ConstPtr& msg);
 
+        void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat);
+
     protected:
+        diagnostic_updater::Updater* m_updater;
         PTU46* m_pantilt;
         ros::NodeHandle m_node;
         ros::Publisher  m_joint_pub;
@@ -51,11 +56,14 @@ class PTU46_Node {
 
 PTU46_Node::PTU46_Node(ros::NodeHandle& node_handle)
         :m_pantilt(NULL), m_node(node_handle) {
-    // Empty Constructor
+    m_updater = new diagnostic_updater::Updater();
+    m_updater->setHardwareID("none"); 
+    m_updater->add("PTU Status", this, &PTU46_Node::produce_diagnostics);
 }
 
 PTU46_Node::~PTU46_Node() {
     Disconnect();
+    delete m_updater;
 }
 
 /** Opens the connection to the PTU and sets appropriate parameters.
@@ -127,6 +135,12 @@ void PTU46_Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
     m_pantilt->SetSpeed(PTU46_PAN, panspeed);
     m_pantilt->SetSpeed(PTU46_TILT, tiltspeed);
 }
+
+void PTU46_Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat) {
+     stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "All normal.");
+     stat.add("PTU Mode", m_pantilt->GetMode()==PTU46_POSITION ? "Position" : "Velocity" );
+}
+
 
 /**
  * Publishes a joint_state message with position and speed.

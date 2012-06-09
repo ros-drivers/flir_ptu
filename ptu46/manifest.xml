@@ -11,5 +11,6 @@
   <depend package="rospy"/>
   <depend package="actionlib"/>
   <depend package="ptu_control"/>
+  <depend package="diagnostic_updater"/>
 </package>
 
