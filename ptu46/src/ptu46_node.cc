@@ -146,9 +146,9 @@ void PTU46_Node::spinOnce() {
     // Publish Position & Speed
     sensor_msgs::JointState joint_state;
     joint_state.header.stamp = ros::Time::now();
-    joint_state.set_name_size(2);
-    joint_state.set_position_size(2);
-    joint_state.set_velocity_size(2);
+    joint_state.name.resize(2);
+    joint_state.position.resize(2);
+    joint_state.velocity.resize(2);
     joint_state.name[0] ="pan";
     joint_state.position[0] = pan;
     joint_state.velocity[0] = panspeed;
