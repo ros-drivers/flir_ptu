@@ -1,0 +1,42 @@
+# Build files
+ptu_control/msg/
+msg_gen/
+srv_gen/
+**/src/**/msg/
+**/src/**/srv/
+**/src/**/__init__.py
+**/src/*msgs
+build/
+doc/
+bin/
+lib/
+cmake_install.cmake
+_gtest_from_src/
+
+#QT
+CMakeLists.txt.user
+qtcreator-build/
+
+# Dynamic reconfigure
+docs/
+*.cfgc
+**/cfg/cpp/
+**/src/*/cfg/
+
+# Eclipse project
+.project
+.cproject
+.pydevproject
+.settings
+
+# Python
+*.pyc
+*.pkl
+
+
+# Temporary files
+*.swp
+*~
+
+# Mac os
+.DS_Store
