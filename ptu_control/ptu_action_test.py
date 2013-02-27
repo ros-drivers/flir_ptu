@@ -1,4 +1,4 @@
-#!/usr/env/bin python
+#!/usr/bin/env python
 import roslib; roslib.load_manifest('ptu_control')
 import rospy
 import ptu_control.msg
@@ -8,7 +8,7 @@ import sys
 def ptu_action_test():
 	client = actionlib.SimpleActionClient('SetPTUState', ptu_control.msg.PtuGotoAction)
 	client.wait_for_server()
-	goal = ptu_control.msg.PtuGotoGoal(pan=float(sys.argv[1]), tilt=float(sys.argv[2]))
+	goal = ptu_control.msg.PtuGotoGoal(pan=float(sys.argv[1]), tilt=float(sys.argv[2]), pan_vel=40, tilt_vel=40)
 	client.send_goal(goal)
 	client.wait_for_result()
 	return client.get_result()
