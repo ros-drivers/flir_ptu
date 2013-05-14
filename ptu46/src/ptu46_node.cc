@@ -126,6 +126,8 @@ void PTU46_Node::Disconnect() {
 void PTU46_Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
     if (! ok())
         return;
+    if (msg->position.size() < 2 || msg->velocity.size() < 2)
+        return;
     double pan = msg->position[0];
     double tilt = msg->position[1];
     double panspeed = msg->velocity[0];
