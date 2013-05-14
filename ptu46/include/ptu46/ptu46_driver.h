@@ -145,6 +145,8 @@ class PTU46 {
          */
         char GetMode ();
 
+        void Home ();
+
     private:
         /** Get radian/count resolution
          * \param type 'p' or 't'

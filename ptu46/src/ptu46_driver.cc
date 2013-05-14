@@ -146,53 +146,21 @@ PTU46::PTU46(const char * port, int rate) {
     tcsetattr(fd, TCSANOW, &newtio);
 
     // now set up the pan tilt camera
-    Write(" "); // terse feedback
     usleep(100000);
     tcflush(fd, TCIFLUSH);
 
-    Write("ft "); // terse feedback
-    Write("ed "); // disable echo
-    Write("ci "); // position mode
+    while (tr <= 0 || pr <= 0 || PMin == 0 || PMax == 0 || TMin == 0 || TMax == 0) {
+        Write("ft "); // terse feedback
+        Write("ed "); // disable echo
+        Write("ci "); // position mode
 
-    // delay here so data has arrived at serial port so we can flush it
-    usleep(200000);
-    tcflush(fd, TCIFLUSH);
-
-    // get pan tilt encoder res
-    tr = GetRes(PTU46_TILT);
-    pr = GetRes(PTU46_PAN);
-
-    PMin = GetLimit(PTU46_PAN, PTU46_MIN);
-    PMax = GetLimit(PTU46_PAN, PTU46_MAX);
-    TMin = GetLimit(PTU46_TILT, PTU46_MIN);
-    TMax = GetLimit(PTU46_TILT, PTU46_MAX);
-    PSMin = GetLimit(PTU46_PAN, PTU46_MIN_SPEED);
-    PSMax = GetLimit(PTU46_PAN, PTU46_MAX_SPEED);
-    TSMin = GetLimit(PTU46_TILT, PTU46_MIN_SPEED);
-    TSMax = GetLimit(PTU46_TILT, PTU46_MAX_SPEED);
-
-    if (tr <= 0 || pr <= 0 || PMin == 0 || PMax == 0 || TMin == 0 || TMax == 0) {
-        // if limit request failed try resetting the unit and then getting limits..
-        Write(" r "); // reset pan-tilt unit (also clears any bad input on serial port)
-
-        // wait for reset to complete
-        int len = 0;
-        char temp;
-        char response[10] = "!T!T!P!P*";
-
-        for (int i = 0; i < 9; ++i) {
-            while ((len = read(fd, &temp, 1 )) == 0) {};
-            if ((len != 1) || (temp != response[i])) {
-                fprintf(stderr,"Error Resetting Pan Tilt unit\n");
-                fprintf(stderr,"Stopping access to pan-tilt unit\n");
-                Disconnect();
-            }
-        }
+        // delay here so data has arrived at serial port so we can flush it
+        usleep(200000);
+        tcflush(fd, TCIFLUSH);
 
         // delay here so data has arrived at serial port so we can flush it
         usleep(100000);
         tcflush(fd, TCIFLUSH);
-
 
         // get pan tilt encoder res
         tr = GetRes(PTU46_TILT);
@@ -208,10 +176,9 @@ PTU46::PTU46(const char * port, int rate) {
         TSMax = GetLimit(PTU46_TILT, PTU46_MAX_SPEED);
 
         if (tr <= 0 || pr <= 0 || PMin == 0 || PMax == 0 || TMin == 0 || TMax == 0) {
-            // if it really failed give up and disable the driver
             fprintf(stderr,"Error getting pan-tilt resolution...is the serial port correct?\n");
-            fprintf(stderr,"Stopping access to pan-tilt unit\n");
-            Disconnect();
+            fprintf(stderr,"Attemption re-connect in 1s\n");
+            sleep(1);
         }
     }
 }
@@ -219,6 +186,29 @@ PTU46::PTU46(const char * port, int rate) {
 
 PTU46::~PTU46() {
     Disconnect();
+}
+
+void PTU46::Home() {
+    fprintf(stderr, "Attempting to home pan-tilt unit.\n");
+
+    usleep(100000);
+    tcflush(fd, TCIFLUSH);
+
+    // if limit request failed try resetting the unit and then getting limits..
+    Write(" r "); // reset pan-tilt unit (also clears any bad input on serial port)
+
+    // wait for reset to complete
+    int len = 0;
+    char temp;
+    char response[10] = "!T!T!P!P*";
+
+    for (int i = 0; i < 9; ++i) {
+        while ((len = read(fd, &temp, 1 )) == 0) {};
+
+        if ((len != 1) || (temp != response[i])) {
+            fprintf(stderr,"Error Resetting Pan Tilt unit\n");
+        }
+    }
 }
 
 void PTU46::Disconnect() {
