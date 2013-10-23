@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater ptu_control
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES ptu46
-   CATKIN_DEPENDS actionlib diagnostic_updater ptu_control roscpp rospy sensor_msgs tf
+   # CATKIN_DEPENDS actionlib diagnostic_updater ptu_control roscpp rospy sensor_msgs tf
 #  DEPENDS system_lib
 )
 
