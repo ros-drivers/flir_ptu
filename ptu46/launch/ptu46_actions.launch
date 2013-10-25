@@ -1,6 +1,6 @@
 <launch>
 	<node name="ptu" pkg="ptu46" type="ptu46_node" output="screen">
-		<param name="port" value="/dev/ttyUSB0"/>
+		<param name="port" value="/dev/ttyUSB1"/>
 	</node>
 	<node name="ptu_action_server" pkg="ptu46" type="ptu_action_server.py" output="screen">
 		<remap from="cmd" to="/ptu/cmd"/>
