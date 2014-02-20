@@ -1,18 +1,17 @@
-Pan-Tilt stack
-==============
+flir_ptu
+========
 
-Is used to control ATRVjr's Directed Perception ptu46 unit.
+ROS driver for FLIR PTUs. Currently tested with:
 
-Origins
-==============
+ - [FLIR D46](http://www.flir.com/mcs/view/?id=53707)
 
-The stack is a copy of Washington University Pan/Tilt stack hosted at
-https://wu-robotics.googlecode.com/svn/branches/stable/wu_ptu
-The initial copy was made at svn revision r2226.
-The wu_ptu stack then was imported into git, maintaining all the history.
+Currently in transition, being renamed and cleaned up in preparation for a
+release into Hydro and Indigo.
 
-It has now also been catkinised.
+License
+=======
 
-There are two reasons for creating the copy:
-* convenience of git;
-* ability to fix things faster;
+This repo originated at [Washington University](https://wu-robotics.googlecode.com/svn/branches/stable/wu_ptu),
+where the code was licensed as GPLv2. The initial copy was made at svn revision r2226.
+
+Thanks to Nick Hawes (@hawesie) for catkinizing the driver.
