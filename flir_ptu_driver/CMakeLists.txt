@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(ptu46)
+project(flir_ptu_driver)
 
-find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater ptu_control roscpp rospy sensor_msgs tf)
+find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater roscpp rospy sensor_msgs tf)
 
 ###################################
 ## catkin specific configuration ##
@@ -14,8 +14,6 @@ find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater ptu_control
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES ptu46
-   # CATKIN_DEPENDS actionlib diagnostic_updater ptu_control roscpp rospy sensor_msgs tf
-#  DEPENDS system_lib
 )
 
 ###########

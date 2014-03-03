@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>ptu46</name>
+  <name>flir_ptu_driver</name>
   <version>0.0.0</version>
   <description>Driver for the Directed Perception ptu46 pan/tilt driver, forked from player</description>
 
