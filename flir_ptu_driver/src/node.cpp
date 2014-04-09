@@ -1,14 +1,14 @@
 #include <string>
 #include <ros/ros.h>
-#include <ptu46/ptu46_driver.h>
+#include <flir_ptu_driver/driver.h>
 #include <sensor_msgs/JointState.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
 
-namespace PTU46 {
+namespace flir_ptu_driver {
 
 /**
- * PTU46 ROS Package
+ * PTU ROS Package
  * Copyright (C) 2009 Erik Karulf (erik@cse.wustl.edu)
  *
  *  This program is free software; you can redistribute it and/or modify
@@ -26,10 +26,10 @@ namespace PTU46 {
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-class PTU46_Node {
+class Node {
     public:
-        PTU46_Node(ros::NodeHandle& node_handle);
-        ~PTU46_Node();
+        Node(ros::NodeHandle& node_handle);
+        ~Node();
 
         // Service Control
         void Connect();
@@ -48,27 +48,27 @@ class PTU46_Node {
 
     protected:
         diagnostic_updater::Updater* m_updater;
-        PTU46* m_pantilt;
+        PTU* m_pantilt;
         ros::NodeHandle m_node;
         ros::Publisher  m_joint_pub;
         ros::Subscriber m_joint_sub;
 };
 
-PTU46_Node::PTU46_Node(ros::NodeHandle& node_handle)
+Node::Node(ros::NodeHandle& node_handle)
         :m_pantilt(NULL), m_node(node_handle) {
     m_updater = new diagnostic_updater::Updater();
     m_updater->setHardwareID("none"); 
-    m_updater->add("PTU Status", this, &PTU46_Node::produce_diagnostics);
+    m_updater->add("PTU Status", this, &Node::produce_diagnostics);
 }
 
-PTU46_Node::~PTU46_Node() {
+Node::~Node() {
     Disconnect();
     delete m_updater;
 }
 
 /** Opens the connection to the PTU and sets appropriate parameters.
     Also manages subscriptions/publishers */
-void PTU46_Node::Connect() {
+void Node::Connect() {
     // If we are reconnecting, first make sure to disconnect
     if (ok()) {
         Disconnect();
@@ -76,13 +76,13 @@ void PTU46_Node::Connect() {
 
     // Query for serial configuration
     std::string port;
-    m_node.param<std::string>("port", port, PTU46_DEFAULT_PORT);
+    m_node.param<std::string>("port", port, PTU_DEFAULT_PORT);
     int baud;
-    m_node.param("baud", baud, PTU46_DEFAULT_BAUD);
+    m_node.param("baud", baud, PTU_DEFAULT_BAUD);
 
     // Connect to the PTU
     ROS_INFO("Attempting to connect to %s...", port.c_str());
-    m_pantilt = new PTU46(port.c_str(), baud);
+    m_pantilt = new PTU(port.c_str(), baud);
     ROS_ASSERT(m_pantilt != NULL);
     if (! m_pantilt->isOpen()) {
         ROS_ERROR("Could not connect to pan/tilt unit [%s]", port.c_str());
@@ -91,17 +91,17 @@ void PTU46_Node::Connect() {
     }
     ROS_INFO("Connected!");
 
-    m_node.setParam("min_tilt", m_pantilt->GetMin(PTU46_TILT));
-    m_node.setParam("max_tilt", m_pantilt->GetMax(PTU46_TILT));
-    m_node.setParam("min_tilt_speed", m_pantilt->GetMinSpeed(PTU46_TILT));
-    m_node.setParam("max_tilt_speed", m_pantilt->GetMaxSpeed(PTU46_TILT));
-    m_node.setParam("tilt_step", m_pantilt->GetResolution(PTU46_TILT));
+    m_node.setParam("min_tilt", m_pantilt->GetMin(PTU_TILT));
+    m_node.setParam("max_tilt", m_pantilt->GetMax(PTU_TILT));
+    m_node.setParam("min_tilt_speed", m_pantilt->GetMinSpeed(PTU_TILT));
+    m_node.setParam("max_tilt_speed", m_pantilt->GetMaxSpeed(PTU_TILT));
+    m_node.setParam("tilt_step", m_pantilt->GetResolution(PTU_TILT));
 
-    m_node.setParam("min_pan", m_pantilt->GetMin(PTU46_PAN));
-    m_node.setParam("max_pan", m_pantilt->GetMax(PTU46_PAN));
-    m_node.setParam("min_pan_speed", m_pantilt->GetMinSpeed(PTU46_PAN));
-    m_node.setParam("max_pan_speed", m_pantilt->GetMaxSpeed(PTU46_PAN));
-    m_node.setParam("pan_step", m_pantilt->GetResolution(PTU46_PAN));
+    m_node.setParam("min_pan", m_pantilt->GetMin(PTU_PAN));
+    m_node.setParam("max_pan", m_pantilt->GetMax(PTU_PAN));
+    m_node.setParam("min_pan_speed", m_pantilt->GetMinSpeed(PTU_PAN));
+    m_node.setParam("max_pan_speed", m_pantilt->GetMaxSpeed(PTU_PAN));
+    m_node.setParam("pan_step", m_pantilt->GetResolution(PTU_PAN));
 
 
     // Publishers : Only publish the most recent reading
@@ -110,12 +110,12 @@ void PTU46_Node::Connect() {
 
     // Subscribers : Only subscribe to the most recent instructions
     m_joint_sub = m_node.subscribe
-                  <sensor_msgs::JointState>("cmd", 1, &PTU46_Node::SetGoal, this);
+                  <sensor_msgs::JointState>("cmd", 1, &Node::SetGoal, this);
 
 }
 
 /** Disconnect */
-void PTU46_Node::Disconnect() {
+void Node::Disconnect() {
     if (m_pantilt != NULL) {
         delete m_pantilt;   // Closes the connection
         m_pantilt = NULL;   // Marks the service as disconnected
@@ -123,7 +123,7 @@ void PTU46_Node::Disconnect() {
 }
 
 /** Callback for getting new Goal JointState */
-void PTU46_Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
+void Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
     if (! ok())
         return;
     if (msg->position.size() < 2 || msg->velocity.size() < 2)
@@ -132,15 +132,15 @@ void PTU46_Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
     double tilt = msg->position[1];
     double panspeed = msg->velocity[0];
     double tiltspeed = msg->velocity[1];
-    m_pantilt->SetPosition(PTU46_PAN, pan);
-    m_pantilt->SetPosition(PTU46_TILT, tilt);
-    m_pantilt->SetSpeed(PTU46_PAN, panspeed);
-    m_pantilt->SetSpeed(PTU46_TILT, tiltspeed);
+    m_pantilt->SetPosition(PTU_PAN, pan);
+    m_pantilt->SetPosition(PTU_TILT, tilt);
+    m_pantilt->SetSpeed(PTU_PAN, panspeed);
+    m_pantilt->SetSpeed(PTU_TILT, tiltspeed);
 }
 
-void PTU46_Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat) {
+void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat) {
      stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "All normal.");
-     stat.add("PTU Mode", m_pantilt->GetMode()==PTU46_POSITION ? "Position" : "Velocity" );
+     stat.add("PTU Mode", m_pantilt->GetMode()==PTU_POSITION ? "Position" : "Velocity" );
 }
 
 
@@ -148,16 +148,16 @@ void PTU46_Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper
  * Publishes a joint_state message with position and speed.
  * Also sends out updated TF info.
  */
-void PTU46_Node::spinOnce() {
+void Node::spinOnce() {
     if (! ok())
         return;
 
     // Read Position & Speed
-    double pan  = m_pantilt->GetPosition(PTU46_PAN);
-    double tilt = m_pantilt->GetPosition(PTU46_TILT);
+    double pan  = m_pantilt->GetPosition(PTU_PAN);
+    double tilt = m_pantilt->GetPosition(PTU_TILT);
 
-    double panspeed  = m_pantilt->GetSpeed(PTU46_PAN);
-    double tiltspeed = m_pantilt->GetSpeed(PTU46_TILT);
+    double panspeed  = m_pantilt->GetSpeed(PTU_PAN);
+    double tiltspeed = m_pantilt->GetSpeed(PTU_TILT);
 
     // Publish Position & Speed
     sensor_msgs::JointState joint_state;
@@ -177,21 +177,21 @@ void PTU46_Node::spinOnce() {
 
 }
 
-} // PTU46 namespace
+}  // flir_ptu_driver namespace
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "ptu");
     ros::NodeHandle n("~");
 
     // Connect to PTU
-    PTU46::PTU46_Node ptu_node = PTU46::PTU46_Node(n);
+    flir_ptu_driver::Node ptu_node = flir_ptu_driver::Node(n);
     ptu_node.Connect();
     if (! ptu_node.ok())
         return -1;
 
     // Query for polling frequency
     int hz;
-    n.param("hz", hz, PTU46_DEFAULT_HZ);
+    n.param("hz", hz, PTU_DEFAULT_HZ);
     ros::Rate loop_rate(hz);
 
     while (ros::ok() && ptu_node.ok()) {

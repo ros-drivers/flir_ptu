@@ -1,22 +1,17 @@
 /*
- * PTU46 ROS Package
+ * flir_ptu_driver ROS package
+ * Copyright (C) 2014 Mike Purvis (mpurvis@clearpathrobotics.com)
+ * 
+ * PTU ROS Package
  * Copyright (C) 2009 Erik Karulf (erik@cse.wustl.edu)
- *
- */
-
-/*
- *  Player - One Hell of a Robot Server
- *  Copyright (C) 2000  Brian Gerkey   &  Kasper Stoy
- *                      gerkey@usc.edu    kaspers@robotics.usc.edu
- *
- * $Id$
  *
  * Author: Toby Collett (University of Auckland)
  * Date: 2003-02-10
  *
- */
-
-/*
+ * Player - One Hell of a Robot Server
+ * Copyright (C) 2000  Brian Gerkey   &  Kasper Stoy
+ *                     gerkey@usc.edu    kaspers@robotics.usc.edu
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 2 of the License, or
@@ -34,7 +29,7 @@
  */
 
 // class declaration
-#include <ptu46/ptu46_driver.h>
+#include <flir_ptu_driver/driver.h>
 
 // serial includes
 #include <sys/types.h>
@@ -49,14 +44,14 @@
 #include <string.h>
 #include <math.h>
 
-namespace PTU46 {
+namespace flir_ptu_driver {
 
 //
 // Pan-Tilt Control Class
 //
 
 // Constructor opens the serial port, and read the config info from it
-PTU46::PTU46(const char * port, int rate) {
+PTU::PTU(const char * port, int rate) {
     tr = pr = 1;
     fd = -1;
 
@@ -163,17 +158,17 @@ PTU46::PTU46(const char * port, int rate) {
         tcflush(fd, TCIFLUSH);
 
         // get pan tilt encoder res
-        tr = GetRes(PTU46_TILT);
-        pr = GetRes(PTU46_PAN);
+        tr = GetRes(PTU_TILT);
+        pr = GetRes(PTU_PAN);
 
-        PMin = GetLimit(PTU46_PAN, PTU46_MIN);
-        PMax = GetLimit(PTU46_PAN, PTU46_MAX);
-        TMin = GetLimit(PTU46_TILT, PTU46_MIN);
-        TMax = GetLimit(PTU46_TILT, PTU46_MAX);
-        PSMin = GetLimit(PTU46_PAN, PTU46_MIN_SPEED);
-        PSMax = GetLimit(PTU46_PAN, PTU46_MAX_SPEED);
-        TSMin = GetLimit(PTU46_TILT, PTU46_MIN_SPEED);
-        TSMax = GetLimit(PTU46_TILT, PTU46_MAX_SPEED);
+        PMin = GetLimit(PTU_PAN, PTU_MIN);
+        PMax = GetLimit(PTU_PAN, PTU_MAX);
+        TMin = GetLimit(PTU_TILT, PTU_MIN);
+        TMax = GetLimit(PTU_TILT, PTU_MAX);
+        PSMin = GetLimit(PTU_PAN, PTU_MIN_SPEED);
+        PSMax = GetLimit(PTU_PAN, PTU_MAX_SPEED);
+        TSMin = GetLimit(PTU_TILT, PTU_MIN_SPEED);
+        TSMax = GetLimit(PTU_TILT, PTU_MAX_SPEED);
 
         if (tr <= 0 || pr <= 0 || PMin == 0 || PMax == 0 || TMin == 0 || TMax == 0) {
             fprintf(stderr,"Error getting pan-tilt resolution...is the serial port correct?\n");
@@ -184,11 +179,11 @@ PTU46::PTU46(const char * port, int rate) {
 }
 
 
-PTU46::~PTU46() {
+PTU::~PTU() {
     Disconnect();
 }
 
-void PTU46::Home() {
+void PTU::Home() {
     fprintf(stderr, "Attempting to home pan-tilt unit.\n");
 
     usleep(100000);
@@ -211,7 +206,7 @@ void PTU46::Home() {
     }
 }
 
-void PTU46::Disconnect() {
+void PTU::Disconnect() {
     if (fd > 0) {
         // restore old port settings
         tcsetattr(fd, TCSANOW, &oldtio);
@@ -221,7 +216,7 @@ void PTU46::Disconnect() {
     }
 }
 
-int PTU46::Write(const char * data, int length) {
+int PTU::Write(const char * data, int length) {
 
     if (fd < 0)
         return -1;
@@ -241,7 +236,7 @@ int PTU46::Write(const char * data, int length) {
 
 
 // get radians/count resolution
-float PTU46::GetRes(char type) {
+float PTU::GetRes(char type) {
     if (fd < 0)
         return -1;
     char cmd[4] = " r ";
@@ -250,7 +245,7 @@ float PTU46::GetRes(char type) {
     // get pan res
     int len = 0;
     Write(cmd);
-    len = read(fd, buffer, PTU46_BUFFER_LEN );
+    len = read(fd, buffer, PTU_BUFFER_LEN );
 
     if (len < 3 || buffer[0] != '*') {
         fprintf(stderr,"Error getting pan-tilt res\n");
@@ -264,7 +259,7 @@ float PTU46::GetRes(char type) {
 }
 
 // get position limit
-int PTU46::GetLimit(char type, char LimType) {
+int PTU::GetLimit(char type, char LimType) {
     if (fd < 0)
         return -1;
     char cmd[4] = "   ";
@@ -274,7 +269,7 @@ int PTU46::GetLimit(char type, char LimType) {
     // get limit
     int len = 0;
     Write(cmd);
-    len = read(fd, buffer, PTU46_BUFFER_LEN );
+    len = read(fd, buffer, PTU_BUFFER_LEN );
 
     if (len < 3 || buffer[0] != '*') {
         fprintf(stderr,"Error getting pan-tilt limit\n");
@@ -287,7 +282,7 @@ int PTU46::GetLimit(char type, char LimType) {
 
 
 // get position in radians
-float PTU46::GetPosition (char type) {
+float PTU::GetPosition (char type) {
     if (fd < 0)
         return -1;
 
@@ -297,7 +292,7 @@ float PTU46::GetPosition (char type) {
     // get pan pos
     int len = 0;
     Write (cmd);
-    len = read (fd, buffer, PTU46_BUFFER_LEN );
+    len = read (fd, buffer, PTU_BUFFER_LEN );
 
     if (len < 3 || buffer[0] != '*') {
         fprintf(stderr,"Error getting pan-tilt pos\n");
@@ -311,7 +306,7 @@ float PTU46::GetPosition (char type) {
 
 
 // set position in radians
-bool PTU46::SetPosition (char type, float pos, bool Block) {
+bool PTU::SetPosition (char type, float pos, bool Block) {
     if (fd < 0)
         return false;
 
@@ -319,8 +314,8 @@ bool PTU46::SetPosition (char type, float pos, bool Block) {
     int Count = static_cast<int> (pos/GetResolution(type));
 
     // Check limits
-    if (Count < (type == PTU46_TILT ? TMin : PMin) || Count > (type == PTU46_TILT ? TMax : PMax)) {
-        fprintf (stderr,"Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n", type, pos, Count, (type == PTU46_TILT ? TMin : PMin),(type == PTU46_TILT ? TMax : PMax));
+    if (Count < (type == PTU_TILT ? TMin : PMin) || Count > (type == PTU_TILT ? TMax : PMax)) {
+        fprintf (stderr,"Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n", type, pos, Count, (type == PTU_TILT ? TMin : PMin),(type == PTU_TILT ? TMax : PMax));
         return false;
     }
 
@@ -330,7 +325,7 @@ bool PTU46::SetPosition (char type, float pos, bool Block) {
     // set pos
     int len = 0;
     Write (cmd);
-    len = read (fd, buffer, PTU46_BUFFER_LEN );
+    len = read (fd, buffer, PTU_BUFFER_LEN );
 
     if (len <= 0 || buffer[0] != '*') {
         fprintf(stderr,"Error setting pan-tilt pos\n");
@@ -344,7 +339,7 @@ bool PTU46::SetPosition (char type, float pos, bool Block) {
 }
 
 // get speed in radians/sec
-float PTU46::GetSpeed (char type) {
+float PTU::GetSpeed (char type) {
     if (fd < 0)
         return -1;
 
@@ -354,7 +349,7 @@ float PTU46::GetSpeed (char type) {
     // get speed
     int len = 0;
     Write (cmd);
-    len = read (fd, buffer, PTU46_BUFFER_LEN );
+    len = read (fd, buffer, PTU_BUFFER_LEN );
 
     if (len < 3 || buffer[0] != '*') {
         fprintf (stderr,"Error getting pan-tilt speed\n");
@@ -369,15 +364,15 @@ float PTU46::GetSpeed (char type) {
 
 
 // set speed in radians/sec
-bool PTU46::SetSpeed (char type, float pos) {
+bool PTU::SetSpeed (char type, float pos) {
     if (fd < 0)
         return false;
 
     // get raw encoder speed to move
     int Count = static_cast<int> (pos/GetResolution(type));
     // Check limits
-    if (abs(Count) < (type == PTU46_TILT ? TSMin : PSMin) || abs(Count) > (type == PTU46_TILT ? TSMax : PSMax)) {
-        fprintf (stderr,"Pan Tilt Speed Value out of Range: %c %f(%d) (%d-%d)\n", type, pos, Count, (type == PTU46_TILT ? TSMin : PSMin),(type == PTU46_TILT ? TSMax : PSMax));
+    if (abs(Count) < (type == PTU_TILT ? TSMin : PSMin) || abs(Count) > (type == PTU_TILT ? TSMax : PSMax)) {
+        fprintf (stderr,"Pan Tilt Speed Value out of Range: %c %f(%d) (%d-%d)\n", type, pos, Count, (type == PTU_TILT ? TSMin : PSMin),(type == PTU_TILT ? TSMax : PSMax));
         return false;
     }
 
@@ -387,7 +382,7 @@ bool PTU46::SetSpeed (char type, float pos) {
     // set speed
     int len = 0;
     Write (cmd);
-    len = read (fd, buffer, PTU46_BUFFER_LEN );
+    len = read (fd, buffer, PTU_BUFFER_LEN );
 
     if (len <= 0 || buffer[0] != '*') {
         fprintf (stderr,"Error setting pan-tilt speed\n");
@@ -398,7 +393,7 @@ bool PTU46::SetSpeed (char type, float pos) {
 
 
 // set movement mode (position/velocity)
-bool PTU46::SetMode (char type) {
+bool PTU::SetMode (char type) {
     if (fd < 0)
         return false;
 
@@ -408,7 +403,7 @@ bool PTU46::SetMode (char type) {
     // set mode
     int len = 0;
     Write (cmd);
-    len = read (fd, buffer, PTU46_BUFFER_LEN );
+    len = read (fd, buffer, PTU_BUFFER_LEN );
 
     if (len <= 0 || buffer[0] != '*') {
         fprintf (stderr,"Error setting pan-tilt move mode\n");
@@ -418,14 +413,14 @@ bool PTU46::SetMode (char type) {
 }
 
 // get ptu mode
-char PTU46::GetMode () {
+char PTU::GetMode () {
     if (fd < 0)
         return -1;
 
     // get pan tilt mode
     int len = 0;
     Write ("c ");
-    len = read (fd, buffer, PTU46_BUFFER_LEN );
+    len = read (fd, buffer, PTU_BUFFER_LEN );
 
     if (len < 3 || buffer[0] != '*') {
         fprintf (stderr,"Error getting pan-tilt pos\n");
@@ -433,9 +428,9 @@ char PTU46::GetMode () {
     }
 
     if (buffer[2] == 'p')
-        return PTU46_VELOCITY;
+        return PTU_VELOCITY;
     else if (buffer[2] == 'i')
-        return PTU46_POSITION;
+        return PTU_POSITION;
     else
         return -1;
 }

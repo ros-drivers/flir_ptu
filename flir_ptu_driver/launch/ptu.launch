@@ -1,0 +1,7 @@
+<launch>
+  <arg name="port" default="/dev/ttyUSB0" />
+	<node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node">
+		<param name="port" value="$(arg port)" />
+	</node>
+	<node name="ptu_action_server" pkg="flir_ptu_driver" type="ptu_action_server.py" />
+</launch>

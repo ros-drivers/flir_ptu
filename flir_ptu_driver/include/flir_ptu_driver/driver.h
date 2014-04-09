@@ -1,28 +1,28 @@
-#ifndef _PTU46_DRIVER_H_
-#define _PTU46_DRIVER_H_
+#ifndef _FLIR_PTU_DRIVER_DRIVER_H_
+#define _FLIR_PTU_DRIVER_DRIVER_H_
 
 #include <termios.h>
 
 // serial defines
-#define PTU46_DEFAULT_BAUD 9600
-#define PTU46_BUFFER_LEN 255
-#define PTU46_DEFAULT_PORT "/dev/ttyUSB1"
-#define PTU46_DEFAULT_HZ 10
+#define PTU_DEFAULT_BAUD 9600
+#define PTU_BUFFER_LEN 255
+#define PTU_DEFAULT_PORT "/dev/ttyUSB1"
+#define PTU_DEFAULT_HZ 10
 
 // command defines
-#define PTU46_PAN 'p'
-#define PTU46_TILT 't'
-#define PTU46_MIN 'n'
-#define PTU46_MAX 'x'
-#define PTU46_MIN_SPEED 'l'
-#define PTU46_MAX_SPEED 'u'
-#define PTU46_VELOCITY 'v'
-#define PTU46_POSITION 'i'
+#define PTU_PAN 'p'
+#define PTU_TILT 't'
+#define PTU_MIN 'n'
+#define PTU_MAX 'x'
+#define PTU_MIN_SPEED 'l'
+#define PTU_MAX_SPEED 'u'
+#define PTU_VELOCITY 'v'
+#define PTU_POSITION 'i'
 
-namespace PTU46 {
+namespace flir_ptu_driver {
 
 /**
- * \brief PTU46 Pan Tilt Unit Driver
+ * \brief PTU Pan Tilt Unit Driver
  * Copyright (C) 2009 Erik Karulf (erik@cse.wustl.edu)
  *
  *  Player - One Hell of a Robot Server
@@ -49,13 +49,13 @@ namespace PTU46 {
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-class PTU46 {
+class PTU {
     public:
         /** Constructor - opens port
          * \param port Filename where PTU is connected
          * \param rate rate Baud rate to use */
-        PTU46(const char* port, int rate);
-        ~PTU46();
+        PTU(const char* port, int rate);
+        ~PTU();
 
         /** \return true if the ptu is open/ready */
         bool isOpen () {
@@ -79,7 +79,7 @@ class PTU46 {
          * \return resolution in radians/count
          */
         float GetResolution (char type) {
-            return (type == PTU46_TILT ? tr : pr);
+            return (type == PTU_TILT ? tr : pr);
         }
 
         /**
@@ -87,14 +87,14 @@ class PTU46 {
          * \return Minimum position in radians
          */
         float GetMin (char type) {
-            return GetResolution(type)*(type == PTU46_TILT ? TMin : PMin);
+            return GetResolution(type)*(type == PTU_TILT ? TMin : PMin);
         }
         /**
          * \param type 'p' or 't'
          * \return Maximum position in radians
          */
         float GetMax (char type) {
-            return GetResolution(type)*(type == PTU46_TILT ? TMax : PMax);
+            return GetResolution(type)*(type == PTU_TILT ? TMax : PMax);
         }
 
         /**
@@ -102,14 +102,14 @@ class PTU46 {
          * \return Minimum speed in radians/second
          */
         float GetMinSpeed (char type) {
-            return GetResolution(type)*(type == PTU46_TILT ? TSMin : PSMin);
+            return GetResolution(type)*(type == PTU_TILT ? TSMin : PSMin);
         }
         /**
          * \param type 'p' or 't'
          * \return Maximum speed in radians/second
          */
         float GetMaxSpeed (char type) {
-            return GetResolution(type)*(type == PTU46_TILT ? TSMax : PSMax);
+            return GetResolution(type)*(type == PTU_TILT ? TSMax : PSMax);
         }
 
 
@@ -183,7 +183,7 @@ class PTU46 {
         int fd;		///< serial port descriptor
         struct termios oldtio; ///< old terminal settings
 
-        char buffer[PTU46_BUFFER_LEN+1]; ///< read buffer
+        char buffer[PTU_BUFFER_LEN+1]; ///< read buffer
 
         /**
          * Write Data to PTU
