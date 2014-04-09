@@ -73,19 +73,19 @@ public:
    * \param type 'p' or 't'
    * \return position in radians
    */
-  float GetPosition(char type);
+  float getPosition(char type);
 
   /**
    * \param type 'p' or 't'
    * \return speed in radians/second
    */
-  float GetSpeed(char type);
+  float getSpeed(char type);
 
   /**
    * \param type 'p' or 't'
    * \return resolution in radians/count
    */
-  float GetResolution(char type) {
+  float getResolution(char type) {
     return (type == PTU_TILT ? tr : pr);
   }
 
@@ -93,30 +93,30 @@ public:
    * \param type 'p' or 't'
    * \return Minimum position in radians
    */
-  float GetMin(char type) {
-    return GetResolution(type) * (type == PTU_TILT ? TMin : PMin);
+  float getMin(char type) {
+    return getResolution(type) * (type == PTU_TILT ? TMin : PMin);
   }
   /**
    * \param type 'p' or 't'
    * \return Maximum position in radians
    */
-  float GetMax(char type) {
-    return GetResolution(type) * (type == PTU_TILT ? TMax : PMax);
+  float getMax(char type) {
+    return getResolution(type) * (type == PTU_TILT ? TMax : PMax);
   }
 
   /**
    * \param type 'p' or 't'
    * \return Minimum speed in radians/second
    */
-  float GetMinSpeed(char type) {
-    return GetResolution(type) * (type == PTU_TILT ? TSMin : PSMin);
+  float getMinSpeed(char type) {
+    return getResolution(type) * (type == PTU_TILT ? TSMin : PSMin);
   }
   /**
    * \param type 'p' or 't'
    * \return Maximum speed in radians/second
    */
-  float GetMaxSpeed(char type) {
-    return GetResolution(type) * (type == PTU_TILT ? TSMax : PSMax);
+  float getMaxSpeed(char type) {
+    return getResolution(type) * (type == PTU_TILT ? TSMax : PSMax);
   }
 
   /**
@@ -127,45 +127,45 @@ public:
    * \param Block block until ready
    * \return True if successfully sent command
   */
-  bool SetPosition(char type, float pos, bool Block = false);
+  bool setPosition(char type, float pos, bool Block = false);
 
   /**
-   * Sets the desired speed in radians/second
+   * sets the desired speed in radians/second
    * \param type 'p' or 't'
    * \param speed desired speed in radians/second
    * \return True if successfully sent command
   */
-  bool SetSpeed(char type, float speed);
+  bool setSpeed(char type, float speed);
 
   /**
-   * Set the control mode, position or velocity
+   * set the control mode, position or velocity
    * \param type 'v' for velocity, 'i' for position
    * \return True if successfully sent command
    */
-  bool SetMode(char type);
+  bool setMode(char type);
 
   /**
-   * Get the control mode, position or velocity
+   * get the control mode, position or velocity
    * \return 'v' for velocity, 'i' for position
    */
-  char GetMode();
+  char getMode();
 
   bool home();
 
 private:
-  /** Get radian/count resolution
+  /** get radian/count resolution
    * \param type 'p' or 't'
    * \return pan resolution if type=='p', tilt resolution if type=='t'
    */
-  float GetRes(char type);
+  float getRes(char type);
 
-  /** Get limiting position/speed in counts or counts/second
+  /** get limiting position/speed in counts or counts/second
    *
    * \param type 'p' or 't' (pan or tilt)
    * \param limType {'n', 'x', 'l', 'u'} (min position, max position, min speed, max speed)
    * \return limiting position/speed
    */
-  int GetLimit(char type, char limType);
+  int getLimit(char type, char limType);
 
   // Position Limits
   int TMin; ///< Min Tilt in Counts

@@ -43,7 +43,7 @@ public:
   void spinOnce();
 
   // Callback Methods
-  void SetGoal(const sensor_msgs::JointState::ConstPtr& msg);
+  void setGoal(const sensor_msgs::JointState::ConstPtr& msg);
 
   void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat);
 
@@ -113,17 +113,17 @@ void Node::connect() {
 
   ROS_INFO("FLIR PTU initialized.");
 
-  m_node.setParam("min_tilt", m_pantilt->GetMin(PTU_TILT));
-  m_node.setParam("max_tilt", m_pantilt->GetMax(PTU_TILT));
-  m_node.setParam("min_tilt_speed", m_pantilt->GetMinSpeed(PTU_TILT));
-  m_node.setParam("max_tilt_speed", m_pantilt->GetMaxSpeed(PTU_TILT));
-  m_node.setParam("tilt_step", m_pantilt->GetResolution(PTU_TILT));
+  m_node.setParam("min_tilt", m_pantilt->getMin(PTU_TILT));
+  m_node.setParam("max_tilt", m_pantilt->getMax(PTU_TILT));
+  m_node.setParam("min_tilt_speed", m_pantilt->getMinSpeed(PTU_TILT));
+  m_node.setParam("max_tilt_speed", m_pantilt->getMaxSpeed(PTU_TILT));
+  m_node.setParam("tilt_step", m_pantilt->getResolution(PTU_TILT));
 
-  m_node.setParam("min_pan", m_pantilt->GetMin(PTU_PAN));
-  m_node.setParam("max_pan", m_pantilt->GetMax(PTU_PAN));
-  m_node.setParam("min_pan_speed", m_pantilt->GetMinSpeed(PTU_PAN));
-  m_node.setParam("max_pan_speed", m_pantilt->GetMaxSpeed(PTU_PAN));
-  m_node.setParam("pan_step", m_pantilt->GetResolution(PTU_PAN));
+  m_node.setParam("min_pan", m_pantilt->getMin(PTU_PAN));
+  m_node.setParam("max_pan", m_pantilt->getMax(PTU_PAN));
+  m_node.setParam("min_pan_speed", m_pantilt->getMinSpeed(PTU_PAN));
+  m_node.setParam("max_pan_speed", m_pantilt->getMaxSpeed(PTU_PAN));
+  m_node.setParam("pan_step", m_pantilt->getResolution(PTU_PAN));
 
   // Publishers : Only publish the most recent reading
   m_joint_pub = m_node.advertise
@@ -131,7 +131,7 @@ void Node::connect() {
 
   // Subscribers : Only subscribe to the most recent instructions
   m_joint_sub = m_node.subscribe
-                <sensor_msgs::JointState>("cmd", 1, &Node::SetGoal, this);
+                <sensor_msgs::JointState>("cmd", 1, &Node::setGoal, this);
 }
 
 /** Disconnect */
@@ -143,7 +143,7 @@ void Node::disconnect() {
 }
 
 /** Callback for getting new Goal JointState */
-void Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
+void Node::setGoal(const sensor_msgs::JointState::ConstPtr& msg) {
   if (! ok())
     return;
 
@@ -154,15 +154,15 @@ void Node::SetGoal(const sensor_msgs::JointState::ConstPtr& msg) {
   double tilt = msg->position[1];
   double panspeed = msg->velocity[0];
   double tiltspeed = msg->velocity[1];
-  m_pantilt->SetPosition(PTU_PAN, pan);
-  m_pantilt->SetPosition(PTU_TILT, tilt);
-  m_pantilt->SetSpeed(PTU_PAN, panspeed);
-  m_pantilt->SetSpeed(PTU_TILT, tiltspeed);
+  m_pantilt->setPosition(PTU_PAN, pan);
+  m_pantilt->setPosition(PTU_TILT, tilt);
+  m_pantilt->setSpeed(PTU_PAN, panspeed);
+  m_pantilt->setSpeed(PTU_TILT, tiltspeed);
 }
 
 void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat) {
   stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "All normal.");
-  stat.add("PTU Mode", m_pantilt->GetMode() == PTU_POSITION ? "Position" : "Velocity");
+  stat.add("PTU Mode", m_pantilt->getMode() == PTU_POSITION ? "Position" : "Velocity");
 }
 
 
@@ -175,11 +175,11 @@ void Node::spinOnce() {
     return;
 
   // Read Position & Speed
-  double pan  = m_pantilt->GetPosition(PTU_PAN);
-  double tilt = m_pantilt->GetPosition(PTU_TILT);
+  double pan  = m_pantilt->getPosition(PTU_PAN);
+  double tilt = m_pantilt->getPosition(PTU_TILT);
 
-  double panspeed  = m_pantilt->GetSpeed(PTU_PAN);
-  double tiltspeed = m_pantilt->GetSpeed(PTU_TILT);
+  double panspeed  = m_pantilt->getSpeed(PTU_PAN);
+  double tiltspeed = m_pantilt->getSpeed(PTU_TILT);
 
   // Publish Position & Speed
   sensor_msgs::JointState joint_state;

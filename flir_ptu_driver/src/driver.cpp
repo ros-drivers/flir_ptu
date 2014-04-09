@@ -67,17 +67,17 @@ bool PTU::initialize()
   //ser_->flush();
 
   // get pan tilt encoder res
-  tr = GetRes(PTU_TILT);
-  pr = GetRes(PTU_PAN);
+  tr = getRes(PTU_TILT);
+  pr = getRes(PTU_PAN);
 
-  PMin = GetLimit(PTU_PAN, PTU_MIN);
-  PMax = GetLimit(PTU_PAN, PTU_MAX);
-  TMin = GetLimit(PTU_TILT, PTU_MIN);
-  TMax = GetLimit(PTU_TILT, PTU_MAX);
-  PSMin = GetLimit(PTU_PAN, PTU_MIN_SPEED);
-  PSMax = GetLimit(PTU_PAN, PTU_MAX_SPEED);
-  TSMin = GetLimit(PTU_TILT, PTU_MIN_SPEED);
-  TSMax = GetLimit(PTU_TILT, PTU_MAX_SPEED);
+  PMin = getLimit(PTU_PAN, PTU_MIN);
+  PMax = getLimit(PTU_PAN, PTU_MAX);
+  TMin = getLimit(PTU_TILT, PTU_MIN);
+  TMax = getLimit(PTU_TILT, PTU_MAX);
+  PSMin = getLimit(PTU_PAN, PTU_MIN_SPEED);
+  PSMax = getLimit(PTU_PAN, PTU_MAX_SPEED);
+  TSMin = getLimit(PTU_TILT, PTU_MIN_SPEED);
+  TSMax = getLimit(PTU_TILT, PTU_MAX_SPEED);
 
   if (tr <= 0 || pr <= 0 || PMin == -1 || PMax == -1 || TMin == -1 || TMax == -1)
   {
@@ -127,7 +127,7 @@ bool PTU::home() {
 }
 
 // get radians/count resolution
-float PTU::GetRes(char type) {
+float PTU::getRes(char type) {
   if (!ser_ || !ser_->isOpen()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + "r ");
@@ -143,7 +143,7 @@ float PTU::GetRes(char type) {
 }
 
 // get position limit
-int PTU::GetLimit(char type, char limType) {
+int PTU::getLimit(char type, char limType) {
   if (!ser_ || !ser_->isOpen()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + limType + " ");
@@ -158,7 +158,7 @@ int PTU::GetLimit(char type, char limType) {
 
 
 // get position in radians
-float PTU::GetPosition(char type) {
+float PTU::getPosition(char type) {
   if (!initialized()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + "p ");
@@ -168,16 +168,16 @@ float PTU::GetPosition(char type) {
     return -1;
   }
 
-  return parseResponse<double>(buffer) * GetResolution(type);
+  return parseResponse<double>(buffer) * getResolution(type);
 }
 
 
 // set position in radians
-bool PTU::SetPosition(char type, float pos, bool block) {
+bool PTU::setPosition(char type, float pos, bool block) {
   if (!initialized()) return false;
 
   // get raw encoder count to move
-  int count = static_cast<int>(pos / GetResolution(type));
+  int count = static_cast<int>(pos / getResolution(type));
 
   // Check limits
   if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax)) {
@@ -195,13 +195,13 @@ bool PTU::SetPosition(char type, float pos, bool block) {
   }
 
   if (block)
-    while (GetPosition(type) != pos) {};
+    while (getPosition(type) != pos) {};
 
   return true;
 }
 
 // get speed in radians/sec
-float PTU::GetSpeed(char type) {
+float PTU::getSpeed(char type) {
   if (!initialized()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + "s ");
@@ -211,17 +211,17 @@ float PTU::GetSpeed(char type) {
     return -1;
   }
 
-  return parseResponse<double>(buffer) * GetResolution(type);
+  return parseResponse<double>(buffer) * getResolution(type);
 }
 
 
 
 // set speed in radians/sec
-bool PTU::SetSpeed(char type, float pos) {
+bool PTU::setSpeed(char type, float pos) {
   if (!initialized()) return false;
 
   // get raw encoder speed to move
-  int count = static_cast<int>(pos / GetResolution(type));
+  int count = static_cast<int>(pos / getResolution(type));
 
   // Check limits
   if (abs(count) < (type == PTU_TILT ? TSMin : PSMin) || abs(count) > (type == PTU_TILT ? TSMax : PSMax)) {
@@ -243,7 +243,7 @@ bool PTU::SetSpeed(char type, float pos) {
 
 
 // set movement mode (position/velocity)
-bool PTU::SetMode(char type) {
+bool PTU::setMode(char type) {
   if (!initialized()) return false;
 
   std::string buffer = sendCommand(std::string("c") + type + " ");
@@ -257,7 +257,7 @@ bool PTU::SetMode(char type) {
 }
 
 // get ptu mode
-char PTU::GetMode() {
+char PTU::getMode() {
   if (!initialized()) return -1;
 
   // get pan tilt mode
