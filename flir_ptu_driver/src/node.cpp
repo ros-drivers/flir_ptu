@@ -6,7 +6,8 @@
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
 
-namespace flir_ptu_driver {
+namespace flir_ptu_driver
+{
 
 /**
  * PTU ROS Package
@@ -27,14 +28,16 @@ namespace flir_ptu_driver {
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-class Node {
+class Node
+{
 public:
   Node(ros::NodeHandle& node_handle);
   ~Node();
 
   // Service Control
   void connect();
-  bool ok() {
+  bool ok()
+  {
     return m_pantilt != NULL;
   }
   void disconnect();
@@ -58,22 +61,26 @@ protected:
 };
 
 Node::Node(ros::NodeHandle& node_handle)
-  : m_pantilt(NULL), m_node(node_handle) {
+  : m_pantilt(NULL), m_node(node_handle)
+{
   m_updater = new diagnostic_updater::Updater();
   m_updater->setHardwareID("none");
   m_updater->add("PTU Status", this, &Node::produce_diagnostics);
 }
 
-Node::~Node() {
+Node::~Node()
+{
   disconnect();
   delete m_updater;
 }
 
 /** Opens the connection to the PTU and sets appropriate parameters.
     Also manages subscriptions/publishers */
-void Node::connect() {
+void Node::connect()
+{
   // If we are reconnecting, first make sure to disconnect
-  if (ok()) {
+  if (ok())
+  {
     disconnect();
   }
 
@@ -135,15 +142,18 @@ void Node::connect() {
 }
 
 /** Disconnect */
-void Node::disconnect() {
-  if (m_pantilt != NULL) {
+void Node::disconnect()
+{
+  if (m_pantilt != NULL)
+  {
     delete m_pantilt;   // Closes the connection
     m_pantilt = NULL;   // Marks the service as disconnected
   }
 }
 
 /** Callback for getting new Goal JointState */
-void Node::setGoal(const sensor_msgs::JointState::ConstPtr& msg) {
+void Node::setGoal(const sensor_msgs::JointState::ConstPtr& msg)
+{
   if (! ok())
     return;
 
@@ -160,7 +170,8 @@ void Node::setGoal(const sensor_msgs::JointState::ConstPtr& msg) {
   m_pantilt->setSpeed(PTU_TILT, tiltspeed);
 }
 
-void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat) {
+void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat)
+{
   stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "All normal.");
   stat.add("PTU Mode", m_pantilt->getMode() == PTU_POSITION ? "Position" : "Velocity");
 }
@@ -170,7 +181,8 @@ void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat
  * Publishes a joint_state message with position and speed.
  * Also sends out updated TF info.
  */
-void Node::spinOnce() {
+void Node::spinOnce()
+{
   if (! ok())
     return;
 
@@ -201,7 +213,8 @@ void Node::spinOnce() {
 
 }  // flir_ptu_driver namespace
 
-int main(int argc, char** argv) {
+int main(int argc, char** argv)
+{
   ros::init(argc, argv, "ptu");
   ros::NodeHandle n;
 
@@ -216,7 +229,8 @@ int main(int argc, char** argv) {
     ros::param::param<int>("~hz", hz, PTU_DEFAULT_HZ);
     ros::Rate loop_rate(hz);
 
-    while (ros::ok() && ptu_node.ok()) {
+    while (ros::ok() && ptu_node.ok())
+    {
       // Publish position & velocity
       ptu_node.spinOnce();
 
@@ -227,7 +241,8 @@ int main(int argc, char** argv) {
       loop_rate.sleep();
     }
 
-    if (!ptu_node.ok()) {
+    if (!ptu_node.ok())
+    {
       ROS_ERROR("FLIR PTU disconnected, attempting reconnection.");
       ros::Duration(1.0).sleep();
     }

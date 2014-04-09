@@ -19,11 +19,13 @@
 
 #include <string>
 
-namespace serial {
+namespace serial
+{
 class Serial;
 }
 
-namespace flir_ptu_driver {
+namespace flir_ptu_driver
+{
 
 /**
  * \brief PTU Pan Tilt Unit Driver
@@ -53,7 +55,8 @@ namespace flir_ptu_driver {
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
-class PTU {
+class PTU
+{
 public:
   /** Constructor - opens port
    * \param ser serial::Serial instance ready to communciate with device.
@@ -85,7 +88,8 @@ public:
    * \param type 'p' or 't'
    * \return resolution in radians/count
    */
-  float getResolution(char type) {
+  float getResolution(char type)
+  {
     return (type == PTU_TILT ? tr : pr);
   }
 
@@ -93,14 +97,16 @@ public:
    * \param type 'p' or 't'
    * \return Minimum position in radians
    */
-  float getMin(char type) {
+  float getMin(char type)
+  {
     return getResolution(type) * (type == PTU_TILT ? TMin : PMin);
   }
   /**
    * \param type 'p' or 't'
    * \return Maximum position in radians
    */
-  float getMax(char type) {
+  float getMax(char type)
+  {
     return getResolution(type) * (type == PTU_TILT ? TMax : PMax);
   }
 
@@ -108,14 +114,16 @@ public:
    * \param type 'p' or 't'
    * \return Minimum speed in radians/second
    */
-  float getMinSpeed(char type) {
+  float getMinSpeed(char type)
+  {
     return getResolution(type) * (type == PTU_TILT ? TSMin : PSMin);
   }
   /**
    * \param type 'p' or 't'
    * \return Maximum speed in radians/second
    */
-  float getMaxSpeed(char type) {
+  float getMaxSpeed(char type)
+  {
     return getResolution(type) * (type == PTU_TILT ? TSMax : PSMax);
   }
 

@@ -39,7 +39,8 @@
 using boost::lexical_cast;
 
 
-namespace flir_ptu_driver {
+namespace flir_ptu_driver
+{
 
 /** Templated wrapper function on lexical_cast to assist with extracting
  * values from serial response strings.
@@ -54,7 +55,8 @@ T parseResponse(std::string responseBuffer)
   return parsed;
 }
 
-bool PTU::initialized() {
+bool PTU::initialized()
+{
   return !!ser_ && ser_->isOpen() && initialized_;
 }
 
@@ -100,7 +102,8 @@ std::string PTU::sendCommand(std::string command)
   return buffer;
 }
 
-bool PTU::home() {
+bool PTU::home()
+{
   ROS_INFO("Sending command to reset PTU.");
 
   // Issue reset command
@@ -127,12 +130,14 @@ bool PTU::home() {
 }
 
 // get radians/count resolution
-float PTU::getRes(char type) {
+float PTU::getRes(char type)
+{
   if (!ser_ || !ser_->isOpen()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + "r ");
 
-  if (buffer.length() < 3 || buffer[0] != '*') {
+  if (buffer.length() < 3 || buffer[0] != '*')
+  {
     ROS_ERROR("Error getting pan-tilt res");
     return -1;
   }
@@ -143,12 +148,14 @@ float PTU::getRes(char type) {
 }
 
 // get position limit
-int PTU::getLimit(char type, char limType) {
+int PTU::getLimit(char type, char limType)
+{
   if (!ser_ || !ser_->isOpen()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + limType + " ");
 
-  if (buffer.length() < 3 || buffer[0] != '*') {
+  if (buffer.length() < 3 || buffer[0] != '*')
+  {
     ROS_ERROR("Error getting pan-tilt limit");
     return -1;
   }
@@ -158,12 +165,14 @@ int PTU::getLimit(char type, char limType) {
 
 
 // get position in radians
-float PTU::getPosition(char type) {
+float PTU::getPosition(char type)
+{
   if (!initialized()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + "p ");
 
-  if (buffer.length() < 3 || buffer[0] != '*') {
+  if (buffer.length() < 3 || buffer[0] != '*')
+  {
     ROS_ERROR("Error getting pan-tilt pos");
     return -1;
   }
@@ -173,14 +182,16 @@ float PTU::getPosition(char type) {
 
 
 // set position in radians
-bool PTU::setPosition(char type, float pos, bool block) {
+bool PTU::setPosition(char type, float pos, bool block)
+{
   if (!initialized()) return false;
 
   // get raw encoder count to move
   int count = static_cast<int>(pos / getResolution(type));
 
   // Check limits
-  if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax)) {
+  if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax))
+  {
     ROS_ERROR("Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n",
               type, pos, count, (type == PTU_TILT ? TMin : PMin), (type == PTU_TILT ? TMax : PMax));
     return false;
@@ -189,7 +200,8 @@ bool PTU::setPosition(char type, float pos, bool block) {
   std::string buffer = sendCommand(std::string() + type + "p" +
                                    lexical_cast<std::string>(count) + " ");
 
-  if (buffer.empty() || buffer[0] != '*') {
+  if (buffer.empty() || buffer[0] != '*')
+  {
     ROS_ERROR("Error setting pan-tilt pos");
     return false;
   }
@@ -201,12 +213,14 @@ bool PTU::setPosition(char type, float pos, bool block) {
 }
 
 // get speed in radians/sec
-float PTU::getSpeed(char type) {
+float PTU::getSpeed(char type)
+{
   if (!initialized()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + "s ");
 
-  if (buffer.length() < 3 || buffer[0] != '*') {
+  if (buffer.length() < 3 || buffer[0] != '*')
+  {
     ROS_ERROR("Error getting pan-tilt speed");
     return -1;
   }
@@ -217,14 +231,16 @@ float PTU::getSpeed(char type) {
 
 
 // set speed in radians/sec
-bool PTU::setSpeed(char type, float pos) {
+bool PTU::setSpeed(char type, float pos)
+{
   if (!initialized()) return false;
 
   // get raw encoder speed to move
   int count = static_cast<int>(pos / getResolution(type));
 
   // Check limits
-  if (abs(count) < (type == PTU_TILT ? TSMin : PSMin) || abs(count) > (type == PTU_TILT ? TSMax : PSMax)) {
+  if (abs(count) < (type == PTU_TILT ? TSMin : PSMin) || abs(count) > (type == PTU_TILT ? TSMax : PSMax))
+  {
     ROS_ERROR("Pan Tilt Speed Value out of Range: %c %f(%d) (%d-%d)\n",
               type, pos, count, (type == PTU_TILT ? TSMin : PSMin), (type == PTU_TILT ? TSMax : PSMax));
     return false;
@@ -233,7 +249,8 @@ bool PTU::setSpeed(char type, float pos) {
   std::string buffer = sendCommand(std::string() + type + "s" +
                                    lexical_cast<std::string>(count) + " ");
 
-  if (buffer.empty() || buffer[0] != '*') {
+  if (buffer.empty() || buffer[0] != '*')
+  {
     ROS_ERROR("Error setting pan-tilt speed\n");
     return false;
   }
@@ -243,12 +260,14 @@ bool PTU::setSpeed(char type, float pos) {
 
 
 // set movement mode (position/velocity)
-bool PTU::setMode(char type) {
+bool PTU::setMode(char type)
+{
   if (!initialized()) return false;
 
   std::string buffer = sendCommand(std::string("c") + type + " ");
 
-  if (buffer.empty() || buffer[0] != '*') {
+  if (buffer.empty() || buffer[0] != '*')
+  {
     ROS_ERROR("Error setting pan-tilt move mode");
     return false;
   }
@@ -257,13 +276,15 @@ bool PTU::setMode(char type) {
 }
 
 // get ptu mode
-char PTU::getMode() {
+char PTU::getMode()
+{
   if (!initialized()) return -1;
 
   // get pan tilt mode
   std::string buffer = sendCommand("c ");
 
-  if (buffer.length() < 3 || buffer[0] != '*') {
+  if (buffer.length() < 3 || buffer[0] != '*')
+  {
     ROS_ERROR("Error getting pan-tilt pos");
     return -1;
   }
