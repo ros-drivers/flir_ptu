@@ -20,7 +20,7 @@
 #include <string>
 
 namespace serial {
-  class Serial;
+class Serial;
 }
 
 namespace flir_ptu_driver {
@@ -54,144 +54,144 @@ namespace flir_ptu_driver {
  *
  */
 class PTU {
-    public:
-        /** Constructor - opens port
-         * \param ser serial::Serial instance ready to communciate with device.
-         */
-        PTU(serial::Serial* ser) :
-          ser_(ser), initialized_(false)
-        {
-        }
+public:
+  /** Constructor - opens port
+   * \param ser serial::Serial instance ready to communciate with device.
+   */
+  PTU(serial::Serial* ser) :
+    ser_(ser), initialized_(false)
+  {
+  }
 
-        /** \return true if initialization succeeds. */
-        bool initialize();
+  /** \return true if initialization succeeds. */
+  bool initialize();
 
-        /** \return true if the serial port is open and PTU initialized. */
-        bool initialized();
+  /** \return true if the serial port is open and PTU initialized. */
+  bool initialized();
 
-        /**
-         * \param type 'p' or 't'
-         * \return position in radians
-         */
-        float GetPosition (char type);
+  /**
+   * \param type 'p' or 't'
+   * \return position in radians
+   */
+  float GetPosition(char type);
 
-        /**
-         * \param type 'p' or 't'
-         * \return speed in radians/second
-         */
-        float GetSpeed (char type);
+  /**
+   * \param type 'p' or 't'
+   * \return speed in radians/second
+   */
+  float GetSpeed(char type);
 
-        /**
-         * \param type 'p' or 't'
-         * \return resolution in radians/count
-         */
-        float GetResolution (char type) {
-            return (type == PTU_TILT ? tr : pr);
-        }
+  /**
+   * \param type 'p' or 't'
+   * \return resolution in radians/count
+   */
+  float GetResolution(char type) {
+    return (type == PTU_TILT ? tr : pr);
+  }
 
-        /**
-         * \param type 'p' or 't'
-         * \return Minimum position in radians
-         */
-        float GetMin (char type) {
-            return GetResolution(type)*(type == PTU_TILT ? TMin : PMin);
-        }
-        /**
-         * \param type 'p' or 't'
-         * \return Maximum position in radians
-         */
-        float GetMax (char type) {
-            return GetResolution(type)*(type == PTU_TILT ? TMax : PMax);
-        }
+  /**
+   * \param type 'p' or 't'
+   * \return Minimum position in radians
+   */
+  float GetMin(char type) {
+    return GetResolution(type) * (type == PTU_TILT ? TMin : PMin);
+  }
+  /**
+   * \param type 'p' or 't'
+   * \return Maximum position in radians
+   */
+  float GetMax(char type) {
+    return GetResolution(type) * (type == PTU_TILT ? TMax : PMax);
+  }
 
-        /**
-         * \param type 'p' or 't'
-         * \return Minimum speed in radians/second
-         */
-        float GetMinSpeed (char type) {
-            return GetResolution(type)*(type == PTU_TILT ? TSMin : PSMin);
-        }
-        /**
-         * \param type 'p' or 't'
-         * \return Maximum speed in radians/second
-         */
-        float GetMaxSpeed (char type) {
-            return GetResolution(type)*(type == PTU_TILT ? TSMax : PSMax);
-        }
+  /**
+   * \param type 'p' or 't'
+   * \return Minimum speed in radians/second
+   */
+  float GetMinSpeed(char type) {
+    return GetResolution(type) * (type == PTU_TILT ? TSMin : PSMin);
+  }
+  /**
+   * \param type 'p' or 't'
+   * \return Maximum speed in radians/second
+   */
+  float GetMaxSpeed(char type) {
+    return GetResolution(type) * (type == PTU_TILT ? TSMax : PSMax);
+  }
 
-        /**
-         * Moves the PTU to the desired position. If Block is true,
-         * the call blocks until the desired position is reached
-         * \param type 'p' or 't'
-         * \param pos desired position in radians
-         * \param Block block until ready
-         * \return True if successfully sent command
-        */
-        bool SetPosition  (char type, float pos, bool Block = false);
+  /**
+   * Moves the PTU to the desired position. If Block is true,
+   * the call blocks until the desired position is reached
+   * \param type 'p' or 't'
+   * \param pos desired position in radians
+   * \param Block block until ready
+   * \return True if successfully sent command
+  */
+  bool SetPosition(char type, float pos, bool Block = false);
 
-        /**
-         * Sets the desired speed in radians/second
-         * \param type 'p' or 't'
-         * \param speed desired speed in radians/second
-         * \return True if successfully sent command
-        */
-        bool SetSpeed  (char type, float speed);
+  /**
+   * Sets the desired speed in radians/second
+   * \param type 'p' or 't'
+   * \param speed desired speed in radians/second
+   * \return True if successfully sent command
+  */
+  bool SetSpeed(char type, float speed);
 
-        /**
-         * Set the control mode, position or velocity
-         * \param type 'v' for velocity, 'i' for position
-         * \return True if successfully sent command
-         */
-        bool SetMode (char type);
+  /**
+   * Set the control mode, position or velocity
+   * \param type 'v' for velocity, 'i' for position
+   * \return True if successfully sent command
+   */
+  bool SetMode(char type);
 
-        /**
-         * Get the control mode, position or velocity
-         * \return 'v' for velocity, 'i' for position
-         */
-        char GetMode ();
+  /**
+   * Get the control mode, position or velocity
+   * \return 'v' for velocity, 'i' for position
+   */
+  char GetMode();
 
-        bool home();
+  bool home();
 
-    private:
-        /** Get radian/count resolution
-         * \param type 'p' or 't'
-         * \return pan resolution if type=='p', tilt resolution if type=='t'
-         */
-        float GetRes (char type);
+private:
+  /** Get radian/count resolution
+   * \param type 'p' or 't'
+   * \return pan resolution if type=='p', tilt resolution if type=='t'
+   */
+  float GetRes(char type);
 
-        /** Get limiting position/speed in counts or counts/second
-         *
-         * \param type 'p' or 't' (pan or tilt)
-         * \param limType {'n', 'x', 'l', 'u'} (min position, max position, min speed, max speed)
-         * \return limiting position/speed
-         */
-        int GetLimit (char type, char limType);
+  /** Get limiting position/speed in counts or counts/second
+   *
+   * \param type 'p' or 't' (pan or tilt)
+   * \param limType {'n', 'x', 'l', 'u'} (min position, max position, min speed, max speed)
+   * \return limiting position/speed
+   */
+  int GetLimit(char type, char limType);
 
-        // Position Limits
-        int TMin;	///< Min Tilt in Counts
-        int TMax;	///< Max Tilt in Counts
-        int PMin;	///< Min Pan in Counts
-        int PMax;	///< Max Pan in Counts
+  // Position Limits
+  int TMin; ///< Min Tilt in Counts
+  int TMax; ///< Max Tilt in Counts
+  int PMin; ///< Min Pan in Counts
+  int PMax; ///< Max Pan in Counts
 
-        // Speed Limits
-        int TSMin;	///< Min Tilt Speed in Counts/second
-        int TSMax;	///< Max Tilt Speed in Counts/second
-        int PSMin;	///< Min Pan Speed in Counts/second
-        int PSMax;	///< Max Pan Speed in Counts/second
+  // Speed Limits
+  int TSMin;  ///< Min Tilt Speed in Counts/second
+  int TSMax;  ///< Max Tilt Speed in Counts/second
+  int PSMin;  ///< Min Pan Speed in Counts/second
+  int PSMax;  ///< Max Pan Speed in Counts/second
 
-    protected:
-        /** Sends a string to the PTU
-         *
-         * \param command string to be sent
-         * \return response string from unit.
-         */
-        std::string sendCommand(std::string command);
+protected:
+  /** Sends a string to the PTU
+   *
+   * \param command string to be sent
+   * \return response string from unit.
+   */
+  std::string sendCommand(std::string command);
 
-        serial::Serial* ser_;
-        bool initialized_;
+  serial::Serial* ser_;
+  bool initialized_;
 
-        float tr;	///< tilt resolution (rads/count)
-        float pr; 	///< pan resolution (rads/count)
+  float tr; ///< tilt resolution (rads/count)
+  float pr;   ///< pan resolution (rads/count)
 };
 
 }
