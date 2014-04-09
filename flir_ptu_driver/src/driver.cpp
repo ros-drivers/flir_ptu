@@ -28,311 +28,166 @@
  *
  */
 
-// class declaration
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string/trim.hpp>
 #include <flir_ptu_driver/driver.h>
+#include <serial/serial.h>
+#include <ros/console.h>
 
-// serial includes
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <stdio.h>
-#include <strings.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
 #include <math.h>
 
+using boost::lexical_cast;
+
+
 namespace flir_ptu_driver {
+ 
+/** Templated wrapper function on lexical_cast to assist with extracting
+ * values from serial response strings.
+ */
+template<typename T>
+T parseResponse(std::string responseBuffer)
+{
+  std::string trimmed = responseBuffer.substr(1);
+  boost::trim(trimmed);
+  T parsed = lexical_cast<T>(trimmed);
+  ROS_DEBUG_STREAM("Parsed response value: " << parsed);
+  return parsed;
+}
+       
+bool PTU::initialized() {
+  return !!ser_ && ser_->isOpen() && initialized_;
+}
 
-//
-// Pan-Tilt Control Class
-//
+bool PTU::initialize()
+{
+  ser_->write("ft "); // terse feedback
+  ser_->write("ed "); // disable echo
+  ser_->write("ci "); // position mode
+  ser_->read(20);
+  //ser_->flush();
 
-// Constructor opens the serial port, and read the config info from it
-PTU::PTU(const char * port, int rate) {
-    tr = pr = 1;
-    fd = -1;
+  // get pan tilt encoder res
+  tr = GetRes(PTU_TILT);
+  pr = GetRes(PTU_PAN);
 
-    // open the serial port
+  PMin = GetLimit(PTU_PAN, PTU_MIN);
+  PMax = GetLimit(PTU_PAN, PTU_MAX);
+  TMin = GetLimit(PTU_TILT, PTU_MIN);
+  TMax = GetLimit(PTU_TILT, PTU_MAX);
+  PSMin = GetLimit(PTU_PAN, PTU_MIN_SPEED);
+  PSMax = GetLimit(PTU_PAN, PTU_MAX_SPEED);
+  TSMin = GetLimit(PTU_TILT, PTU_MIN_SPEED);
+  TSMax = GetLimit(PTU_TILT, PTU_MAX_SPEED);
 
-    fd = open(port, O_RDWR | O_NOCTTY | O_NDELAY);
-    if ( fd<0 ) {
-        fprintf(stderr, "Could not open serial device %s\n",port);
-        return;
-    }
-    fcntl(fd,F_SETFL, 0);
+  if (tr <= 0 || pr <= 0 || PMin == -1 || PMax == -1 || TMin == -1 || TMax == -1) 
+  {
+    initialized_ = false;
+  }
+  else
+  {
+    initialized_ = true;
+  }
+  return initialized();
+}
 
-    // save the current io settings
-    tcgetattr(fd, &oldtio);
+std::string PTU::sendCommand(std::string command)
+{
+  ser_->write(command);
+  ROS_DEBUG_STREAM("TX: " << command);
+  std::string buffer = ser_->readline(PTU_BUFFER_LEN);
+  ROS_DEBUG_STREAM("RX: " << buffer);
+  return buffer;
+}
 
-    // rtv - CBAUD is pre-POSIX and doesn't exist on OS X
-    // should replace this with ispeed and ospeed instead.
+bool PTU::home() {
+  ROS_INFO("Sending command to reset PTU.");
 
-    // set up new settings
-    struct termios newtio;
-    memset(&newtio, 0,sizeof(newtio));
-    newtio.c_cflag = /*(rate & CBAUD) |*/ CS8 | CLOCAL | CREAD;
-    newtio.c_iflag = IGNPAR;
-    newtio.c_oflag = 0;
-    newtio.c_lflag = ICANON;
+  // Issue reset command
+  ser_->flush();
+  ser_->write(" r ");
 
-    speed_t sp = B9600;
-    switch (rate) {
-    case 0:
-        sp = B0;
-        break;
-    case 50:
-        sp = B50;
-        break;
-    case 75:
-        sp = B75;
-        break;
-    case 110:
-        sp = B110;
-        break;
-    case 134:
-        sp = B134;
-        break;
-    case 150:
-        sp = B150;
-        break;
-    case 200:
-        sp = B200;
-        break;
-    case 300:
-        sp = B300;
-        break;
-    case 600:
-        sp = B600;
-        break;
-    case 1200:
-        sp = B1200;
-        break;
-    case 2400:
-        sp = B2400;
-        break;
-    case 4800:
-        sp = B4800;
-        break;
-    case 9600:
-        sp = B9600;
-        break;
-    case 19200:
-        sp = B19200;
-        break;
-    case 38400:
-        sp = B38400;
-        break;
-    default:
-        fprintf(stderr,"Failed to set serial baud rate: %d\n", rate);
-        Disconnect();
-        return;
-    }
+  std::string actual_response, expected_response("!T!T!P!P*");
 
-    if (cfsetispeed(&newtio, sp) < 0 ||   cfsetospeed(&newtio, sp) < 0) {
-        fprintf(stderr,"Failed to set serial baud rate: %d\n", rate);
-        Disconnect();
-        return;
-    }
-    // activate new settings
-    tcflush(fd, TCIFLUSH);
-    tcsetattr(fd, TCSANOW, &newtio);
-
-    // now set up the pan tilt camera
+  // 30 seconds to receive full confirmation of reset action completed.
+  for(int i = 0; i < 300; i++)
+  {
     usleep(100000);
-    tcflush(fd, TCIFLUSH);
-
-    while (tr <= 0 || pr <= 0 || PMin == 0 || PMax == 0 || TMin == 0 || TMax == 0) {
-        Write("ft "); // terse feedback
-        Write("ed "); // disable echo
-        Write("ci "); // position mode
-
-        // delay here so data has arrived at serial port so we can flush it
-        usleep(200000);
-        tcflush(fd, TCIFLUSH);
-
-        // delay here so data has arrived at serial port so we can flush it
-        usleep(100000);
-        tcflush(fd, TCIFLUSH);
-
-        // get pan tilt encoder res
-        tr = GetRes(PTU_TILT);
-        pr = GetRes(PTU_PAN);
-
-        PMin = GetLimit(PTU_PAN, PTU_MIN);
-        PMax = GetLimit(PTU_PAN, PTU_MAX);
-        TMin = GetLimit(PTU_TILT, PTU_MIN);
-        TMax = GetLimit(PTU_TILT, PTU_MAX);
-        PSMin = GetLimit(PTU_PAN, PTU_MIN_SPEED);
-        PSMax = GetLimit(PTU_PAN, PTU_MAX_SPEED);
-        TSMin = GetLimit(PTU_TILT, PTU_MIN_SPEED);
-        TSMax = GetLimit(PTU_TILT, PTU_MAX_SPEED);
-
-        if (tr <= 0 || pr <= 0 || PMin == 0 || PMax == 0 || TMin == 0 || TMax == 0) {
-            fprintf(stderr,"Error getting pan-tilt resolution...is the serial port correct?\n");
-            fprintf(stderr,"Attemption re-connect in 1s\n");
-            sleep(1);
-        }
+    if (ser_->available() >= expected_response.length())
+    {
+      ROS_INFO("PTU reset command response received.");
+      ser_->read(actual_response, expected_response.length());
+      return (actual_response == expected_response);
     }
+  }
+  ROS_WARN("PTU reset command response not received before timeout.");
+  return false;
 }
-
-
-PTU::~PTU() {
-    Disconnect();
-}
-
-void PTU::Home() {
-    fprintf(stderr, "Attempting to home pan-tilt unit.\n");
-
-    usleep(100000);
-    tcflush(fd, TCIFLUSH);
-
-    // if limit request failed try resetting the unit and then getting limits..
-    Write(" r "); // reset pan-tilt unit (also clears any bad input on serial port)
-
-    // wait for reset to complete
-    int len = 0;
-    char temp;
-    char response[10] = "!T!T!P!P*";
-
-    for (int i = 0; i < 9; ++i) {
-        while ((len = read(fd, &temp, 1 )) == 0) {};
-
-        if ((len != 1) || (temp != response[i])) {
-            fprintf(stderr,"Error Resetting Pan Tilt unit\n");
-        }
-    }
-}
-
-void PTU::Disconnect() {
-    if (fd > 0) {
-        // restore old port settings
-        tcsetattr(fd, TCSANOW, &oldtio);
-        // close the connection
-        close(fd);
-        fd = -1;
-    }
-}
-
-int PTU::Write(const char * data, int length) {
-
-    if (fd < 0)
-        return -1;
-
-    // autocalculate if using short form
-    if (length == 0)
-        length = strlen(data);
-
-    // ugly error handling, if write fails then shut down unit
-    if (write(fd, data, length) < length) {
-        fprintf(stderr,"Error writing to Pan Tilt Unit, disabling\n");
-        Disconnect();
-        return -1;
-    }
-    return 0;
-}
-
 
 // get radians/count resolution
 float PTU::GetRes(char type) {
-    if (fd < 0)
-        return -1;
-    char cmd[4] = " r ";
-    cmd[0] = type;
+    if (!ser_ || !ser_->isOpen()) return -1;
 
-    // get pan res
-    int len = 0;
-    Write(cmd);
-    len = read(fd, buffer, PTU_BUFFER_LEN );
-
-    if (len < 3 || buffer[0] != '*') {
-        fprintf(stderr,"Error getting pan-tilt res\n");
+    std::string buffer = sendCommand(std::string() + type + "r ");
+    if (buffer.length() < 3 || buffer[0] != '*') {
+        ROS_ERROR("Error getting pan-tilt res");
         return -1;
     }
 
-    buffer[len] = '\0';
-    double z = strtod(&buffer[2],NULL);
-    z = z/3600; // degrees/count
-    return  z*M_PI/180; //radians/count
+    double z = parseResponse<double>(buffer);
+    z = z / 3600; // degrees/count
+    return z * M_PI / 180; //radians/count*/
 }
 
 // get position limit
-int PTU::GetLimit(char type, char LimType) {
-    if (fd < 0)
-        return -1;
-    char cmd[4] = "   ";
-    cmd[0] = type;
-    cmd[1] = LimType;
+int PTU::GetLimit(char type, char limType) {
+    if (!ser_ || !ser_->isOpen()) return -1;
 
-    // get limit
-    int len = 0;
-    Write(cmd);
-    len = read(fd, buffer, PTU_BUFFER_LEN );
-
-    if (len < 3 || buffer[0] != '*') {
-        fprintf(stderr,"Error getting pan-tilt limit\n");
+    std::string buffer = sendCommand(std::string() + type + limType + " ");
+    if (buffer.length() < 3 || buffer[0] != '*') {
+        ROS_ERROR("Error getting pan-tilt limit");
         return -1;
     }
 
-    buffer[len] = '\0';
-    return strtol(&buffer[2],NULL,0);
+    return parseResponse<int>(buffer);
 }
 
 
 // get position in radians
 float PTU::GetPosition (char type) {
-    if (fd < 0)
-        return -1;
+    if (!initialized()) return -1;
 
-    char cmd[4] = " p ";
-    cmd[0] = type;
-
-    // get pan pos
-    int len = 0;
-    Write (cmd);
-    len = read (fd, buffer, PTU_BUFFER_LEN );
-
-    if (len < 3 || buffer[0] != '*') {
-        fprintf(stderr,"Error getting pan-tilt pos\n");
+    std::string buffer = sendCommand(std::string() + type + "p ");
+    if (buffer.length() < 3 || buffer[0] != '*') {
+        ROS_ERROR("Error getting pan-tilt pos");
         return -1;
     }
 
-    buffer[len] = '\0';
-
-    return strtod (&buffer[2],NULL) * GetResolution(type);
+    return parseResponse<double>(buffer) * GetResolution(type);
 }
 
 
 // set position in radians
-bool PTU::SetPosition (char type, float pos, bool Block) {
-    if (fd < 0)
-        return false;
+bool PTU::SetPosition (char type, float pos, bool block) {
+    if (!initialized()) return false;
 
     // get raw encoder count to move
-    int Count = static_cast<int> (pos/GetResolution(type));
+    int count = static_cast<int> (pos / GetResolution(type));
 
     // Check limits
-    if (Count < (type == PTU_TILT ? TMin : PMin) || Count > (type == PTU_TILT ? TMax : PMax)) {
-        fprintf (stderr,"Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n", type, pos, Count, (type == PTU_TILT ? TMin : PMin),(type == PTU_TILT ? TMax : PMax));
+    if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax)) {
+        ROS_ERROR("Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n", 
+            type, pos, count, (type == PTU_TILT ? TMin : PMin),(type == PTU_TILT ? TMax : PMax));
         return false;
     }
 
-    char cmd[16];
-    snprintf (cmd,16,"%cp%d ",type,Count);
-
-    // set pos
-    int len = 0;
-    Write (cmd);
-    len = read (fd, buffer, PTU_BUFFER_LEN );
-
-    if (len <= 0 || buffer[0] != '*') {
-        fprintf(stderr,"Error setting pan-tilt pos\n");
+    std::string buffer = sendCommand(std::string() + type + "p" + 
+                                     lexical_cast<std::string>(count) + " ");
+    if (buffer.empty() || buffer[0] != '*') {
+        ROS_ERROR("Error setting pan-tilt pos");
         return false;
     }
 
-    if (Block)
+    if (block)
         while (GetPosition (type) != pos) {};
 
     return true;
@@ -340,52 +195,37 @@ bool PTU::SetPosition (char type, float pos, bool Block) {
 
 // get speed in radians/sec
 float PTU::GetSpeed (char type) {
-    if (fd < 0)
-        return -1;
-
-    char cmd[4] = " s ";
-    cmd[0] = type;
-
-    // get speed
-    int len = 0;
-    Write (cmd);
-    len = read (fd, buffer, PTU_BUFFER_LEN );
-
-    if (len < 3 || buffer[0] != '*') {
-        fprintf (stderr,"Error getting pan-tilt speed\n");
+    if (!initialized()) return -1;
+    
+    std::string buffer = sendCommand(std::string() + type + "s ");
+    if (buffer.length() < 3 || buffer[0] != '*') {
+        ROS_ERROR("Error getting pan-tilt speed");
         return -1;
     }
 
-    buffer[len] = '\0';
-
-    return strtod(&buffer[2],NULL) * GetResolution(type);
+    return parseResponse<double>(buffer) * GetResolution(type);
 }
 
 
 
 // set speed in radians/sec
 bool PTU::SetSpeed (char type, float pos) {
-    if (fd < 0)
-        return false;
+    if (!initialized()) return false;
 
     // get raw encoder speed to move
-    int Count = static_cast<int> (pos/GetResolution(type));
+    int count = static_cast<int> (pos/GetResolution(type));
+
     // Check limits
-    if (abs(Count) < (type == PTU_TILT ? TSMin : PSMin) || abs(Count) > (type == PTU_TILT ? TSMax : PSMax)) {
-        fprintf (stderr,"Pan Tilt Speed Value out of Range: %c %f(%d) (%d-%d)\n", type, pos, Count, (type == PTU_TILT ? TSMin : PSMin),(type == PTU_TILT ? TSMax : PSMax));
+    if (abs(count) < (type == PTU_TILT ? TSMin : PSMin) || abs(count) > (type == PTU_TILT ? TSMax : PSMax)) {
+        ROS_ERROR("Pan Tilt Speed Value out of Range: %c %f(%d) (%d-%d)\n", 
+            type, pos, count, (type == PTU_TILT ? TSMin : PSMin),(type == PTU_TILT ? TSMax : PSMax));
         return false;
     }
 
-    char cmd[16];
-    snprintf (cmd,16,"%cs%d ",type,Count);
-
-    // set speed
-    int len = 0;
-    Write (cmd);
-    len = read (fd, buffer, PTU_BUFFER_LEN );
-
-    if (len <= 0 || buffer[0] != '*') {
-        fprintf (stderr,"Error setting pan-tilt speed\n");
+    std::string buffer = sendCommand(std::string() + type + "s" + 
+                                     lexical_cast<std::string>(count) + " ");
+    if (buffer.empty() || buffer[0] != '*') {
+        ROS_ERROR("Error setting pan-tilt speed\n");
         return false;
     }
     return true;
@@ -394,19 +234,11 @@ bool PTU::SetSpeed (char type, float pos) {
 
 // set movement mode (position/velocity)
 bool PTU::SetMode (char type) {
-    if (fd < 0)
-        return false;
+    if (!initialized()) return false;
 
-    char cmd[4] = "c  ";
-    cmd[1] = type;
-
-    // set mode
-    int len = 0;
-    Write (cmd);
-    len = read (fd, buffer, PTU_BUFFER_LEN );
-
-    if (len <= 0 || buffer[0] != '*') {
-        fprintf (stderr,"Error setting pan-tilt move mode\n");
+    std::string buffer = sendCommand(std::string("c") + type + " ");
+    if (buffer.empty() || buffer[0] != '*') {
+        ROS_ERROR("Error setting pan-tilt move mode");
         return false;
     }
     return true;
@@ -414,16 +246,12 @@ bool PTU::SetMode (char type) {
 
 // get ptu mode
 char PTU::GetMode () {
-    if (fd < 0)
-        return -1;
+    if (!initialized()) return -1;
 
     // get pan tilt mode
-    int len = 0;
-    Write ("c ");
-    len = read (fd, buffer, PTU_BUFFER_LEN );
-
-    if (len < 3 || buffer[0] != '*') {
-        fprintf (stderr,"Error getting pan-tilt pos\n");
+    std::string buffer = sendCommand("c ");
+    if (buffer.length() < 3 || buffer[0] != '*') {
+        ROS_ERROR("Error getting pan-tilt pos");
         return -1;
     }
 

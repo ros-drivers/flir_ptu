@@ -1,12 +1,10 @@
 #ifndef _FLIR_PTU_DRIVER_DRIVER_H_
 #define _FLIR_PTU_DRIVER_DRIVER_H_
 
-#include <termios.h>
-
 // serial defines
 #define PTU_DEFAULT_BAUD 9600
 #define PTU_BUFFER_LEN 255
-#define PTU_DEFAULT_PORT "/dev/ttyUSB1"
+#define PTU_DEFAULT_PORT "/dev/ttyUSB0"
 #define PTU_DEFAULT_HZ 10
 
 // command defines
@@ -18,6 +16,12 @@
 #define PTU_MAX_SPEED 'u'
 #define PTU_VELOCITY 'v'
 #define PTU_POSITION 'i'
+
+#include <string>
+
+namespace serial {
+  class Serial;
+}
 
 namespace flir_ptu_driver {
 
@@ -52,15 +56,18 @@ namespace flir_ptu_driver {
 class PTU {
     public:
         /** Constructor - opens port
-         * \param port Filename where PTU is connected
-         * \param rate rate Baud rate to use */
-        PTU(const char* port, int rate);
-        ~PTU();
+         * \param ser serial::Serial instance ready to communciate with device.
+         */
+        PTU(serial::Serial* ser) :
+          ser_(ser), initialized_(false)
+        {
+        }
 
-        /** \return true if the ptu is open/ready */
-        bool isOpen () {
-            return fd > 0;
-        };
+        /** \return true if initialization succeeds. */
+        bool initialize();
+
+        /** \return true if the serial port is open and PTU initialized. */
+        bool initialized();
 
         /**
          * \param type 'p' or 't'
@@ -112,8 +119,6 @@ class PTU {
             return GetResolution(type)*(type == PTU_TILT ? TSMax : PSMax);
         }
 
-
-
         /**
          * Moves the PTU to the desired position. If Block is true,
          * the call blocks until the desired position is reached
@@ -145,7 +150,7 @@ class PTU {
          */
         char GetMode ();
 
-        void Home ();
+        bool home();
 
     private:
         /** Get radian/count resolution
@@ -157,12 +162,10 @@ class PTU {
         /** Get limiting position/speed in counts or counts/second
          *
          * \param type 'p' or 't' (pan or tilt)
-         * \param LimType {'n', 'x', 'l', 'u'} (min position, max position, min speed, max speed)
+         * \param limType {'n', 'x', 'l', 'u'} (min position, max position, min speed, max speed)
          * \return limiting position/speed
          */
-        int GetLimit (char type, char LimType);
-
-
+        int GetLimit (char type, char limType);
 
         // Position Limits
         int TMin;	///< Min Tilt in Counts
@@ -177,25 +180,18 @@ class PTU {
         int PSMax;	///< Max Pan Speed in Counts/second
 
     protected:
+        /** Sends a string to the PTU
+         *
+         * \param command string to be sent
+         * \return response string from unit.
+         */
+        std::string sendCommand(std::string command);
+
+        serial::Serial* ser_;
+        bool initialized_;
+
         float tr;	///< tilt resolution (rads/count)
         float pr; 	///< pan resolution (rads/count)
-
-        int fd;		///< serial port descriptor
-        struct termios oldtio; ///< old terminal settings
-
-        char buffer[PTU_BUFFER_LEN+1]; ///< read buffer
-
-        /**
-         * Write Data to PTU
-         * \param data
-         * \param length number of chars (default=0)
-         * \return 0 if successful, -1 if failure
-        */
-        int Write(const char * data, int length = 0);
-
-        /** Cleanly disconnect
-         */
-        void Disconnect();
 };
 
 }

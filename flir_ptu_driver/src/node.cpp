@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <flir_ptu_driver/driver.h>
 #include <sensor_msgs/JointState.h>
+#include <serial/serial.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
 
@@ -32,11 +33,11 @@ class Node {
         ~Node();
 
         // Service Control
-        void Connect();
+        void connect();
         bool ok() {
             return m_pantilt != NULL;
         }
-        void Disconnect();
+        void disconnect();
 
         // Service Execution
         void spinOnce();
@@ -52,6 +53,8 @@ class Node {
         ros::NodeHandle m_node;
         ros::Publisher  m_joint_pub;
         ros::Subscriber m_joint_sub;
+
+        serial::Serial m_ser;
 };
 
 Node::Node(ros::NodeHandle& node_handle)
@@ -62,34 +65,50 @@ Node::Node(ros::NodeHandle& node_handle)
 }
 
 Node::~Node() {
-    Disconnect();
+    disconnect();
     delete m_updater;
 }
 
 /** Opens the connection to the PTU and sets appropriate parameters.
     Also manages subscriptions/publishers */
-void Node::Connect() {
+void Node::connect() {
     // If we are reconnecting, first make sure to disconnect
     if (ok()) {
-        Disconnect();
+        disconnect();
     }
 
     // Query for serial configuration
     std::string port;
-    m_node.param<std::string>("port", port, PTU_DEFAULT_PORT);
-    int baud;
-    m_node.param("baud", baud, PTU_DEFAULT_BAUD);
+    int32_t baud;
+    ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
+    ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
 
     // Connect to the PTU
-    ROS_INFO("Attempting to connect to %s...", port.c_str());
-    m_pantilt = new PTU(port.c_str(), baud);
-    ROS_ASSERT(m_pantilt != NULL);
-    if (! m_pantilt->isOpen()) {
-        ROS_ERROR("Could not connect to pan/tilt unit [%s]", port.c_str());
-        Disconnect();
+    ROS_INFO_STREAM("Attempting to connect to FLIR PTU on " << port);
+    
+    try
+    {
+      m_ser.setPort(port);
+      m_ser.setBaudrate(baud); 
+      serial::Timeout to = serial::Timeout(200, 200, 0, 200, 0);
+      m_ser.setTimeout(to);
+      m_ser.open();
+    } 
+    catch(serial::IOException& e)
+    {
+      ROS_ERROR_STREAM("Unable to open port " << port);
+      return;
+    }
+    ROS_INFO_STREAM("FLIR PTU serial port opened, now initializing.");
+
+    m_pantilt = new PTU(&m_ser);
+    if (!m_pantilt->initialize())
+    {
+        ROS_ERROR_STREAM("Could not initialize FLIR PTU on " << port);
+        disconnect();
         return;
     }
-    ROS_INFO("Connected!");
+    ROS_INFO("FLIR PTU initialized.");
 
     m_node.setParam("min_tilt", m_pantilt->GetMin(PTU_TILT));
     m_node.setParam("max_tilt", m_pantilt->GetMax(PTU_TILT));
@@ -103,7 +122,6 @@ void Node::Connect() {
     m_node.setParam("max_pan_speed", m_pantilt->GetMaxSpeed(PTU_PAN));
     m_node.setParam("pan_step", m_pantilt->GetResolution(PTU_PAN));
 
-
     // Publishers : Only publish the most recent reading
     m_joint_pub = m_node.advertise
                   <sensor_msgs::JointState>("state", 1);
@@ -111,11 +129,10 @@ void Node::Connect() {
     // Subscribers : Only subscribe to the most recent instructions
     m_joint_sub = m_node.subscribe
                   <sensor_msgs::JointState>("cmd", 1, &Node::SetGoal, this);
-
 }
 
 /** Disconnect */
-void Node::Disconnect() {
+void Node::disconnect() {
     if (m_pantilt != NULL) {
         delete m_pantilt;   // Closes the connection
         m_pantilt = NULL;   // Marks the service as disconnected
@@ -180,18 +197,18 @@ void Node::spinOnce() {
 }  // flir_ptu_driver namespace
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "ptu");
-    ros::NodeHandle n("~");
+  ros::init(argc, argv, "ptu");
+  ros::NodeHandle n;
 
+  while(ros::ok())
+  {
     // Connect to PTU
-    flir_ptu_driver::Node ptu_node = flir_ptu_driver::Node(n);
-    ptu_node.Connect();
-    if (! ptu_node.ok())
-        return -1;
+    flir_ptu_driver::Node ptu_node(n);
+    ptu_node.connect();
 
     // Query for polling frequency
     int hz;
-    n.param("hz", hz, PTU_DEFAULT_HZ);
+    ros::param::param<int>("~hz", hz, PTU_DEFAULT_HZ);
     ros::Rate loop_rate(hz);
 
     while (ros::ok() && ptu_node.ok()) {
@@ -205,10 +222,11 @@ int main(int argc, char** argv) {
         loop_rate.sleep();
     }
 
-    if (! ptu_node.ok()) {
-        ROS_ERROR("pan/tilt unit disconncted prematurely");
-        return -1;
+    if (!ptu_node.ok()) {
+      ROS_ERROR("FLIR PTU disconnected, attempting reconnection.");
+      ros::Duration(1.0).sleep();
     }
+  }
 
-    return 0;
+  return 0;
 }
