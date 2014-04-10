@@ -1,10 +1,12 @@
-#include <string>
-#include <ros/ros.h>
-#include <flir_ptu_driver/driver.h>
-#include <sensor_msgs/JointState.h>
-#include <serial/serial.h>
+
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/publisher.h>
+#include <flir_ptu_driver/driver.h>
+#include <ros/ros.h>
+#include <sensor_msgs/JointState.h>
+#include <serial/serial.h>
+
+#include <string>
 
 namespace flir_ptu_driver
 {
@@ -46,7 +48,7 @@ public:
   void spinCallback(const ros::TimerEvent&);
 
   // Callback Methods
-  void setGoal(const sensor_msgs::JointState::ConstPtr& msg);
+  void cmdCallback(const sensor_msgs::JointState::ConstPtr& msg);
 
   void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat);
 
@@ -138,7 +140,7 @@ void Node::connect()
 
   // Subscribers : Only subscribe to the most recent instructions
   m_joint_sub = m_node.subscribe
-                <sensor_msgs::JointState>("cmd", 1, &Node::setGoal, this);
+                <sensor_msgs::JointState>("cmd", 1, &Node::cmdCallback, this);
 }
 
 /** Disconnect */
@@ -152,7 +154,7 @@ void Node::disconnect()
 }
 
 /** Callback for getting new Goal JointState */
-void Node::setGoal(const sensor_msgs::JointState::ConstPtr& msg)
+void Node::cmdCallback(const sensor_msgs::JointState::ConstPtr& msg)
 {
   if (!ok()) return;
 
