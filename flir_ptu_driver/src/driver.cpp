@@ -35,6 +35,7 @@
 #include <ros/console.h>
 
 #include <math.h>
+#include <string>
 
 using boost::lexical_cast;
 
@@ -62,11 +63,10 @@ bool PTU::initialized()
 
 bool PTU::initialize()
 {
-  ser_->write("ft "); // terse feedback
-  ser_->write("ed "); // disable echo
-  ser_->write("ci "); // position mode
+  ser_->write("ft ");  // terse feedback
+  ser_->write("ed ");  // disable echo
+  ser_->write("ci ");  // position mode
   ser_->read(20);
-  //ser_->flush();
 
   // get pan tilt encoder res
   tr = getRes(PTU_TILT);
@@ -143,8 +143,8 @@ float PTU::getRes(char type)
   }
 
   double z = parseResponse<double>(buffer);
-  z = z / 3600; // degrees/count
-  return z * M_PI / 180; //radians/count*/
+  z = z / 3600;  // degrees/count
+  return z * M_PI / 180;  // radians/count
 }
 
 // get position limit
@@ -297,4 +297,4 @@ char PTU::getMode()
     return -1;
 }
 
-}
+}  // namespace flir_ptu_driver

@@ -1,19 +1,16 @@
-
-#include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_updater/publisher.h>
-#include <flir_ptu_driver/driver.h>
-#include <ros/ros.h>
-#include <sensor_msgs/JointState.h>
-#include <serial/serial.h>
-
-#include <string>
-
-namespace flir_ptu_driver
-{
-
-/**
+/*
+ * flir_ptu_driver ROS package
+ * Copyright (C) 2014 Mike Purvis (mpurvis@clearpathrobotics.com)
+ *
  * PTU ROS Package
  * Copyright (C) 2009 Erik Karulf (erik@cse.wustl.edu)
+ *
+ * Author: Toby Collett (University of Auckland)
+ * Date: 2003-02-10
+ *
+ * Player - One Hell of a Robot Server
+ * Copyright (C) 2000  Brian Gerkey   &  Kasper Stoy
+ *                     gerkey@usc.edu    kaspers@robotics.usc.edu
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -30,10 +27,23 @@ namespace flir_ptu_driver
  *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
+
+#include <diagnostic_updater/diagnostic_updater.h>
+#include <diagnostic_updater/publisher.h>
+#include <flir_ptu_driver/driver.h>
+#include <ros/ros.h>
+#include <sensor_msgs/JointState.h>
+#include <serial/serial.h>
+
+#include <string>
+
+namespace flir_ptu_driver
+{
+
 class Node
 {
 public:
-  Node(ros::NodeHandle& node_handle);
+  explicit Node(ros::NodeHandle& node_handle);
   ~Node();
 
   // Service Control
@@ -69,7 +79,7 @@ Node::Node(ros::NodeHandle& node_handle)
   m_updater = new diagnostic_updater::Updater();
   m_updater->setHardwareID("none");
   m_updater->add("PTU Status", this, &Node::produce_diagnostics);
-  
+
   ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
 }
 
@@ -191,8 +201,7 @@ void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat
  */
 void Node::spinCallback(const ros::TimerEvent&)
 {
-  if (! ok())
-    return;
+  if (!ok()) return;
 
   // Read Position & Speed
   double pan  = m_pantilt->getPosition(PTU_PAN);
@@ -218,7 +227,7 @@ void Node::spinCallback(const ros::TimerEvent&)
   m_updater->update();
 }
 
-}  // flir_ptu_driver namespace
+}  // namespace flir_ptu_driver
 
 int main(int argc, char** argv)
 {

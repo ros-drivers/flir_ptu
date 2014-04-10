@@ -41,3 +41,4 @@ install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 roslint_cpp()
+roslint_add_test()
