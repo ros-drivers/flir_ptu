@@ -4,13 +4,7 @@ project(flir_ptu_viz)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  flir_ptu_description
-  joint_state_publisher
-  robot_state_publisher
-  roslaunch
-  rviz
-)
+find_package(catkin REQUIRED COMPONENTS roslaunch)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
