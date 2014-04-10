@@ -28,4 +28,16 @@ add_dependencies(flir_ptu_node flir_ptu_msgs_generate_messages_cpp)
 set_target_properties(flir_ptu_node
                       PROPERTIES OUTPUT_NAME ptu_node PREFIX "")
 
+install(TARGETS flir_ptu_driver flir_ptu_node
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+install(PROGRAMS scripts/cmd_angles
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+
 roslint_cpp()
