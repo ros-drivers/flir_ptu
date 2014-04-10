@@ -60,6 +60,7 @@ protected:
   ros::Subscriber m_joint_sub;
 
   serial::Serial m_ser;
+  std::string m_joint_name_prefix;
 };
 
 Node::Node(ros::NodeHandle& node_handle)
@@ -68,6 +69,8 @@ Node::Node(ros::NodeHandle& node_handle)
   m_updater = new diagnostic_updater::Updater();
   m_updater->setHardwareID("none");
   m_updater->add("PTU Status", this, &Node::produce_diagnostics);
+  
+  ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
 }
 
 Node::~Node()
@@ -156,6 +159,7 @@ void Node::disconnect()
 /** Callback for getting new Goal JointState */
 void Node::cmdCallback(const sensor_msgs::JointState::ConstPtr& msg)
 {
+  ROS_DEBUG("PTU command callback.");
   if (!ok()) return;
 
   if (msg->position.size() != 2 || msg->velocity.size() != 2)
@@ -203,10 +207,10 @@ void Node::spinCallback(const ros::TimerEvent&)
   joint_state.name.resize(2);
   joint_state.position.resize(2);
   joint_state.velocity.resize(2);
-  joint_state.name[0] = "pan";
+  joint_state.name[0] = m_joint_name_prefix + "pan";
   joint_state.position[0] = pan;
   joint_state.velocity[0] = panspeed;
-  joint_state.name[1] = "tilt";
+  joint_state.name[1] = m_joint_name_prefix + "tilt";
   joint_state.position[1] = tilt;
   joint_state.velocity[1] = tiltspeed;
   m_joint_pub.publish(joint_state);
