@@ -17,7 +17,6 @@
   <build_depend>actionlib</build_depend>
   <build_depend>boost</build_depend>
   <build_depend>diagnostic_updater</build_depend>
-  <build_depend>flir_ptu_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>roslint</build_depend>
   <build_depend>rospy</build_depend>
@@ -26,7 +25,6 @@
   <build_depend>tf</build_depend>
   <run_depend>actionlib</run_depend>
   <run_depend>diagnostic_updater</run_depend>
-  <run_depend>flir_ptu_msgs</run_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>sensor_msgs</run_depend>
