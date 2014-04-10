@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<package>
+  <name>flir_ptu_driver</name>
+  <version>0.0.0</version>
+  <description>Driver for the Directed Perception ptu46 pan/tilt driver.</description>
+
+  <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
+
+  <!-- Authors -->
+  <author email="erik@cse.wustl.edu">Erik Karulf</author> 
+  <author email="davidlu@wustl.edu">David V. Lu</author>
+  <author email="n.a.hawes@cs.bham.ac.uk">Nick Hawes</author>
+
+  <license>GPL</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>actionlib</build_depend>
+  <build_depend>boost</build_depend>
+  <build_depend>diagnostic_updater</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>roslint</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>serial</build_depend>
+  <build_depend>tf</build_depend>
+  <run_depend>actionlib</run_depend>
+  <run_depend>diagnostic_updater</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>serial</run_depend>
+  <run_depend>tf</run_depend>
+
+</package>
