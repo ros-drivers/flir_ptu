@@ -65,7 +65,7 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: true
-      Marker Scale: 1
+      Marker Scale: 0.3
       Name: TF
       Show Arrows: true
       Show Axes: true
