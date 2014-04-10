@@ -43,7 +43,7 @@ public:
   void disconnect();
 
   // Service Execution
-  void spinOnce();
+  void spinCallback(const ros::TimerEvent&);
 
   // Callback Methods
   void setGoal(const sensor_msgs::JointState::ConstPtr& msg);
@@ -154,11 +154,13 @@ void Node::disconnect()
 /** Callback for getting new Goal JointState */
 void Node::setGoal(const sensor_msgs::JointState::ConstPtr& msg)
 {
-  if (! ok())
-    return;
+  if (!ok()) return;
 
-  if (msg->position.size() < 2 || msg->velocity.size() < 2)
+  if (msg->position.size() != 2 || msg->velocity.size() != 2)
+  {
+    ROS_ERROR("JointState command to PTU has wrong number of elements.");
     return;
+  }
 
   double pan = msg->position[0];
   double tilt = msg->position[1];
@@ -181,7 +183,7 @@ void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat
  * Publishes a joint_state message with position and speed.
  * Also sends out updated TF info.
  */
-void Node::spinOnce()
+void Node::spinCallback(const ros::TimerEvent&)
 {
   if (! ok())
     return;
@@ -208,7 +210,6 @@ void Node::spinOnce()
   m_joint_pub.publish(joint_state);
 
   m_updater->update();
-
 }
 
 }  // flir_ptu_driver namespace
@@ -224,22 +225,14 @@ int main(int argc, char** argv)
     flir_ptu_driver::Node ptu_node(n);
     ptu_node.connect();
 
-    // Query for polling frequency
+    // Set up polling callback
     int hz;
     ros::param::param<int>("~hz", hz, PTU_DEFAULT_HZ);
-    ros::Rate loop_rate(hz);
+    ros::Timer spin_timer = n.createTimer(ros::Duration(1 / hz),
+        &flir_ptu_driver::Node::spinCallback, &ptu_node);
 
-    while (ros::ok() && ptu_node.ok())
-    {
-      // Publish position & velocity
-      ptu_node.spinOnce();
-
-      // Process a round of subscription messages
-      ros::spinOnce();
-
-      // This will adjust as needed per iteration
-      loop_rate.sleep();
-    }
+    // Spin until there's a problem or we're in shutdown
+    ros::spin();
 
     if (!ptu_node.ok())
     {
