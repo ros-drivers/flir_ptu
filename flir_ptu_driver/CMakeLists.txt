@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(flir_ptu_driver)
 
-find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater roscpp roslint rospy serial sensor_msgs tf)
+find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater roscpp roslaunch roslint rospy serial sensor_msgs tf)
 find_package(Boost REQUIRED)
 
 catkin_package(
@@ -40,5 +40,8 @@ install(PROGRAMS scripts/cmd_angles
 install(DIRECTORY launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
+## Tests
 roslint_cpp()
 roslint_add_test()
+roslaunch_add_file_check(launch/ptu.launch
+  DEPENDENCIES flir_ptu_example_urdf flir_ptu_node)
