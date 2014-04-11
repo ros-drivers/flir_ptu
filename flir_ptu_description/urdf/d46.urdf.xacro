@@ -46,16 +46,16 @@
     <link name="${name}_tilted_link" />
     <link name="${name}_mount_link" />
 
-    <!-- There's a offset between the origin of the pan joint and the origin of 
-         the overall device. -->
-    <joint name="${name}_base_to_pan" type="fixed">
+    <!-- There's an offset between the origin of the pan joint and the origin of 
+         the overall device, which is between the mounting screws on its base. -->
+    <joint name="${name}_base" type="fixed">
       <parent link="${name}_base_link"/>
       <child link="${name}_pan_link"/>
       <origin xyz="0 -0.011 0.022"/>
     </joint>
 
     <!-- The pan joint -->
-    <joint name="${name}_pan_to_tilt" type="revolute">
+    <joint name="${name}_pan" type="revolute">
       <parent link="${name}_pan_link" />
       <origin xyz="0 0 0.066" rpy="-1.5708 0 0" />
       <child link="${name}_tilt_link" />
@@ -65,7 +65,7 @@
     </joint>
 
     <!-- The tilt joint -->
-    <joint name="${name}_tilt_to_tilted" type="revolute">
+    <joint name="${name}_tilt" type="revolute">
       <parent link="${name}_tilt_link" />
       <origin xyz="0 0 0" rpy="-1.5708 0 0" />
       <child link="${name}_tilted_link" />
@@ -75,7 +75,7 @@
     </joint>
 
     <!-- Fixed joint to provide a convenient attachment point for accessories. -->
-    <joint name="${name}_tilted_to_mount" type="fixed">
+    <joint name="${name}_mount" type="fixed">
       <parent link="${name}_tilted_link"/>
       <child link="${name}_mount_link"/>
       <origin xyz="0 0 -0.03912" rpy="3.1416 0 0" />
