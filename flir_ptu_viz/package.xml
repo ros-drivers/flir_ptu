@@ -7,7 +7,7 @@
   <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
   <url>http://wiki.ros.org/flir_ptu_driver</url>
 
-  <license>GPLv2</license>
+  <license>BSD</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <run_depend>flir_ptu_description</run_depend>
