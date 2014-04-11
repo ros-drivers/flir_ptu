@@ -5,6 +5,7 @@
   <description>Launchfiles and rviz configs to assist with visualizing the FLIR PTUs.</description>
 
   <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
+  <url>http://wiki.ros.org/flir_ptu_driver</url>
 
   <license>GPLv2</license>
 

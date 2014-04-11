@@ -5,6 +5,7 @@
   <description>Driver for the Directed Perception ptu46 pan/tilt driver.</description>
 
   <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
+  <url>http://wiki.ros.org/flir_ptu_driver</url>
 
   <!-- Authors -->
   <author email="erik@cse.wustl.edu">Erik Karulf</author> 
