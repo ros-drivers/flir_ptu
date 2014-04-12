@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>flir_ptu_driver</name>
-  <version>0.1.0</version>
+  <version>0.1.1</version>
   <description>Driver for the Directed Perception ptu46 pan/tilt driver.</description>
 
   <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
