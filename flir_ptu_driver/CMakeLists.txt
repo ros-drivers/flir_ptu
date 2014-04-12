@@ -5,9 +5,8 @@ find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater roscpp rosl
 find_package(Boost REQUIRED)
 
 catkin_package(
-   INCLUDE_DIRS include
    LIBRARIES flir_ptu_driver
-   CATKIN_DEPENDS serial
+   CATKIN_DEPENDS sensor_msgs serial
 )
 
 ## Specify additional locations of header files
