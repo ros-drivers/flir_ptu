@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(flir_ptu_description)
 
-find_package(catkin REQUIRED COMPONENTS urdf xacro)
+find_package(catkin REQUIRED COMPONENTS xacro)
 
 catkin_package()
 
