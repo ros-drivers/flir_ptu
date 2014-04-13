@@ -2,6 +2,11 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.3 (2014-04-13)
+------------------
+* catkin_lint fixes
+* Contributors: Mike Purvis
+
 0.1.2 (2014-04-12)
 ------------------
 

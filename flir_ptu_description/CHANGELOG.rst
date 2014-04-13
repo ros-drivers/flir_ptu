@@ -2,6 +2,9 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.3 (2014-04-13)
+------------------
+
 0.1.2 (2014-04-12)
 ------------------
 * Remove $(find) macro referencing self, since this doesn't work on the first build.

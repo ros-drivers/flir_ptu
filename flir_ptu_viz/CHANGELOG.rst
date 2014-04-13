@@ -2,6 +2,13 @@
 Changelog for package flir_ptu_viz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.1.3 (2014-04-13)
+------------------
+* catkin_lint fixes
+* Switch roslaunch to a build dependency
+* Add launchfile tests
+* Contributors: Mike Purvis
+
 0.1.2 (2014-04-12)
 ------------------
 
