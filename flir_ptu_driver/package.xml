@@ -2,7 +2,7 @@
 <package>
   <name>flir_ptu_driver</name>
   <version>0.1.3</version>
-  <description>Driver for the Directed Perception ptu46 pan/tilt driver.</description>
+  <description>Driver for the FLIR pan/tilt units.</description>
 
   <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
   <url>http://wiki.ros.org/flir_ptu_driver</url>
