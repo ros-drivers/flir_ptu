@@ -7,8 +7,8 @@
   <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
   
   <url type="website">http://wiki.ros.org/flir_ptu_driver</url>
-  <url type="repository">https://github.com/ros-drivers/flir_ptu_driver.git</url>
-  <url type="bugtracker">https://github.com/ros-drivers/flir_ptu_driver/issues</url>
+  <url type="repository">https://github.com/ros-drivers/flir_ptu.git</url>
+  <url type="bugtracker">https://github.com/ros-drivers/flir_ptu/issues</url>
 
   <!-- Authors -->
   <author email="erik@cse.wustl.edu">Erik Karulf</author> 
