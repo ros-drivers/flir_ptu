@@ -9,5 +9,5 @@ roslaunch_add_file_check(launch/view_model.launch
 roslaunch_add_file_check(launch/view_ptu.launch
   DEPENDENCIES rviz)
 
-install(DIRECTORY launch
+install(DIRECTORY launch rviz
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
