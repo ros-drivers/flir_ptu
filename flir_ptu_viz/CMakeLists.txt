@@ -8,3 +8,6 @@ roslaunch_add_file_check(launch/view_model.launch
   DEPENDENCIES flir_ptu_example_urdf robot_state_publisher)
 roslaunch_add_file_check(launch/view_ptu.launch
   DEPENDENCIES rviz)
+
+install(DIRECTORY launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
