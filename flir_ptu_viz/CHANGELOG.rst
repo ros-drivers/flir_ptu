@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_viz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.4 (2014-07-17)
+------------------
 * Update and install the rviz config as well.
 * Install launch files for viz.
 * Contributors: Mike Purvis

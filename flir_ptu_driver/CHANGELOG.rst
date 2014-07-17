@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.1.4 (2014-07-17)
+------------------
 * Fix repository and bug-tracker URLs.
 * Add more URL elements
 * Update package description
