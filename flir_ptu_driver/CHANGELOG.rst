@@ -2,6 +2,14 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix repository and bug-tracker URLs.
+* Add more URL elements
+* Update package description
+* Fix tabs->spaces in launch file.
+* Contributors: Mike Purvis
+
 0.1.3 (2014-04-13)
 ------------------
 * catkin_lint fixes

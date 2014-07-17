@@ -2,6 +2,12 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix weird urdf issue with floating tilt joint.
+* Add comments to the example URDF.
+* Contributors: Mike Purvis
+
 0.1.3 (2014-04-13)
 ------------------
 
