@@ -66,6 +66,7 @@ bool PTU::initialize()
   ser_->write("ft ");  // terse feedback
   ser_->write("ed ");  // disable echo
   ser_->write("ci ");  // position mode
+  ser_->write("cme "); // enable D series compatability mode
   ser_->read(20);
 
   // get pan tilt encoder res
