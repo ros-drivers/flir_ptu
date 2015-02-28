@@ -1,6 +1,13 @@
 <launch>
+  <arg name="ip" default="192.168.1.17" />
   <arg name="port" default="/tmp/PTUcom" />
   <arg name="baud" default="9600" />
+
+  <node pkg="flir_ptu_driver" type="ptucom.py"
+    args="--ip $(arg ip) --port $(arg port)"
+    name="ptucom">
+  </node>
+
 
   <!-- When you integrate into your platform, use the provided xacro macro to include
        the D46 URDF with your larger platform description, and have your platform's
