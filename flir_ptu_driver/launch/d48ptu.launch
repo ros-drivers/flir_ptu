@@ -3,9 +3,9 @@
   <arg name="port" default="/tmp/PTUcom" />
   <arg name="baud" default="9600" />
 
-  <node pkg="flir_ptu_driver" type="ptucom.py"
-    args="--ip $(arg ip) --port $(arg port)"
-    name="ptucom">
+  <node pkg="flir_ptu_driver" type="ptucom.py">
+    <args="--ip $(arg ip) --port $(arg port)" />
+    <name="ptucom" />
   </node>
 
 
