@@ -7,13 +7,14 @@
 #Copyright: 2015, Clearpath Robotics
 #Author: Jeff Schmidt 
 
-import os, sys, argparse
+import os, sys, time, argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--ip', default="192.168.1.17")
 parser.add_argument('--com', default="/tmp/PTUcom")
 parser.add_argument('--port', default="4000")
-args = parser.parse_args()
+#args = parser.parse_args()
+args, unknown = parser.parse_known_args()
 
 # ping the desired IP to see if it's available
 response = os.system("ping -c 1 " + (args.ip))
@@ -22,5 +23,6 @@ response = os.system("ping -c 1 " + (args.ip))
 if response == 0:
   print (args.ip), 'is up! Creating a virtual com port at', (args.com)
   os.system("socat pty,link=" + (args.com) + ",raw tcp:" + (args.ip) + ":" + (args.port) + "&")
+#  time.sleep(10)
 else:
   print (args.ip), 'is down! Cannot create virtual com port.'
