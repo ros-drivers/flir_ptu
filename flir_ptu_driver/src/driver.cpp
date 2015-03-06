@@ -51,9 +51,18 @@ T parseResponse(std::string responseBuffer)
 {
   std::string trimmed = responseBuffer.substr(1);
   boost::trim(trimmed);
-  T parsed = lexical_cast<T>(trimmed);
-  ROS_DEBUG_STREAM("Parsed response value: " << parsed);
-  return parsed;
+  try
+  {
+    T parsed = lexical_cast<T>(trimmed);
+    ROS_DEBUG_STREAM("Parsed response value: " << parsed);
+
+    return parsed;
+  }
+  catch(std::exception e)
+  {
+    ROS_WARN_STREAM("Unable to parse value from device.");
+    return 0;
+  }
 }
 
 bool PTU::initialized()
@@ -63,6 +72,14 @@ bool PTU::initialized()
 
 bool PTU::initialize()
 {
+  // Clear out any data from the PTU serial buffer before attempting to send any commands.
+  std::string out = "blank";
+  while (out != "")
+  {
+    ROS_ERROR("Clearing PTU buffer...");
+    out = ser_->read(500);
+  }
+
   ser_->write("ft ");  // terse feedback
   ser_->write("ed ");  // disable echo
   ser_->write("ci ");  // position mode

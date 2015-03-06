@@ -6,7 +6,6 @@
 
   <node args="--ip $(arg ip) --com $(arg com) --port $(arg port)" pkg="flir_ptu_driver" type="ptucom.py" name="ptucom" />
 
-
   <!-- When you integrate into your platform, use the provided xacro macro to include
        the D46 URDF with your larger platform description, and have your platform's
        joint_state_publisher subscribe to the ptu state. 
