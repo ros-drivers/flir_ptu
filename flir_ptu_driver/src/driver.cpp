@@ -60,7 +60,7 @@ T parseResponse(std::string responseBuffer)
   }
   catch(std::exception e)
   {
-    ROS_WARN_STREAM("Unable to parse value from device.");
+    ROS_WARN_STREAM("Unable to parse value [" << responseBuffer << "]");
     return 0;
   }
 }
@@ -79,7 +79,13 @@ bool PTU::initialize()
     ROS_ERROR("Clearing PTU buffer...");
     out = ser_->read(500);
   }
+  ros::Duration(0.5).sleep();
 
+
+
+
+
+  ser_->write("a "); // await
   ser_->write("ft ");  // terse feedback
   ser_->write("ed ");  // disable echo
   ser_->write("ci ");  // position mode
@@ -116,6 +122,11 @@ std::string PTU::sendCommand(std::string command)
   ser_->write(command);
   ROS_DEBUG_STREAM("TX: " << command);
   std::string buffer = ser_->readline(PTU_BUFFER_LEN);
+  while(ser_->available() > 0)
+  {
+    ROS_DEBUG_STREAM("RX (disarded): " << buffer);
+    buffer = ser_->readline(PTU_BUFFER_LEN);
+  }
   ROS_DEBUG_STREAM("RX: " << buffer);
   return buffer;
 }
@@ -194,6 +205,7 @@ float PTU::getPosition(char type)
     ROS_ERROR("Error getting pan-tilt pos");
     return -1;
   }
+  ROS_INFO("pos: %c %s", type, buffer.c_str());
 
   return parseResponse<double>(buffer) * getResolution(type);
 }
