@@ -205,7 +205,6 @@ float PTU::getPosition(char type)
     ROS_ERROR("Error getting pan-tilt pos");
     return -1;
   }
-  ROS_INFO("pos: %c %s", type, buffer.c_str());
 
   return parseResponse<double>(buffer) * getResolution(type);
 }
