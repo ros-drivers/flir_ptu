@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<robot name="ptu_d48"
+       xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:property name="pan_velocity" value="1.0" />
+  <xacro:property name="pan_range" value="2.775" />
+  <xacro:property name="tilt_velocity" value="1.0" />
+  <xacro:property name="tilt_up_range" value="0.52" />
+  <xacro:property name="tilt_down_range" value="0.82" />
+  <xacro:property name="joint_effort" value="30" />
+
+  <xacro:macro name="ptu_d48" params="name">
+    <link name="${name}_base_link">
+      <!-- <inertial>
+        <mass value="0.65" />
+        <inertia ... ? />
+      </inertial> -->
+      <visual>
+        <material name="ptu_body_color">
+          <color rgba="0.3 0.3 0.3 1.0" />
+        </material>
+        <geometry>
+          <mesh filename="package://flir_ptu_description/urdf/meshes/d48_ptu_base.STL"/>
+        </geometry>
+        <origin xyz="0 0 0" />
+      </visual>
+    </link>
+
+    <link name="${name}_pan_link">
+      <!-- <inertial>
+        <mass value="0.65" />
+        <inertia ... ? />
+      </inertial> -->
+      <visual>
+        <material name="ptu_body_color">
+          <color rgba="0.3 0.3 0.3 1.0" />
+        </material>
+        <geometry>
+          <mesh filename="package://flir_ptu_description/urdf/meshes/d48_ptu_body.STL"/>
+        </geometry>
+        <origin xyz="0 0 0" />
+      </visual>
+    </link>
+
+    <link name="${name}_tilt_link">
+      <!-- <inertial>
+        <mass value="0.65" />
+        <inertia ... ? />
+      </inertial> -->
+      <visual>
+        <material name="ptu_body_color">
+          <color rgba="0.3 0.3 0.3 1.0" />
+        </material>
+        <geometry>
+          <mesh filename="package://flir_ptu_description/urdf/meshes/d48_ptu_mount.STL"/>
+        </geometry>
+        <origin xyz="0 0 0" />
+      </visual>
+    </link>
+
+    <link name="${name}_mount_link" />
+
+    <!-- There's an offset between the origin of the pan joint and the origin of 
+         the overall device, which is between the mounting screws on its base. -->
+    <joint name="${name}_pan" type="revolute">
+      <parent link="${name}_base_link"/>
+      <child link="${name}_pan_link"/>
+      <origin xyz="0 0 0.092"/>
+      <axis xyz="0 0 -1" />
+      <limit lower="${pan_range}" upper="${-pan_range}"
+             effort="${joint_effort}" velocity="${pan_velocity}" />
+    </joint>
+
+    <!-- The pan joint -->
+    <joint name="${name}_tilt" type="revolute">
+      <parent link="${name}_pan_link" />
+      <origin xyz="0 0 0.13" />
+      <child link="${name}_tilt_link" />
+      <axis xyz="0 -1 0" />
+      <limit lower="${-tilt_down_range}" upper="${tilt_up_range}"
+             effort="${joint_effort}" velocity="${tilt_velocity}" />
+    </joint>
+
+    <!-- Fixed joint to provide a convenient attachment point for accessories. -->
+    <joint name="${name}_mount" type="fixed">
+      <parent link="${name}_tilt_link"/>
+      <child link="${name}_mount_link"/>
+      <origin xyz="0 0 0.046" />
+    </joint>
+  </xacro:macro>
+</robot>

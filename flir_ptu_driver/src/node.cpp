@@ -247,12 +247,16 @@ int main(int argc, char** argv)
         &flir_ptu_driver::Node::spinCallback, &ptu_node);
 
     // Spin until there's a problem or we're in shutdown
-    ros::spin();
-
-    if (!ptu_node.ok())
+    while(true)
     {
-      ROS_ERROR("FLIR PTU disconnected, attempting reconnection.");
-      ros::Duration(1.0).sleep();
+      ros::spinOnce();
+      ros::Duration(0.1).sleep();
+
+      if (!ptu_node.ok())
+      {
+        ROS_ERROR("FLIR PTU disconnected, attempting reconnection.");
+        break;
+      }
     }
   }
 

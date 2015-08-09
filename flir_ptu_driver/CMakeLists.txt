@@ -42,5 +42,7 @@ install(DIRECTORY launch
 ## Tests
 roslint_cpp()
 roslint_add_test()
-roslaunch_add_file_check(launch/ptu.launch
+roslaunch_add_file_check(launch/d46ptu.launch
+  DEPENDENCIES flir_ptu_example_urdf flir_ptu_node)
+roslaunch_add_file_check(launch/d48ptu.launch
   DEPENDENCIES flir_ptu_example_urdf flir_ptu_node)

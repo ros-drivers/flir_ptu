@@ -51,9 +51,18 @@ T parseResponse(std::string responseBuffer)
 {
   std::string trimmed = responseBuffer.substr(1);
   boost::trim(trimmed);
-  T parsed = lexical_cast<T>(trimmed);
-  ROS_DEBUG_STREAM("Parsed response value: " << parsed);
-  return parsed;
+  try
+  {
+    T parsed = lexical_cast<T>(trimmed);
+    ROS_DEBUG_STREAM("Parsed response value: " << parsed);
+
+    return parsed;
+  }
+  catch(std::exception e)
+  {
+    ROS_WARN_STREAM("Unable to parse value [" << responseBuffer << "]");
+    return 0;
+  }
 }
 
 bool PTU::initialized()
@@ -63,9 +72,24 @@ bool PTU::initialized()
 
 bool PTU::initialize()
 {
+  // Clear out any data from the PTU serial buffer before attempting to send any commands.
+  std::string out = "blank";
+  while (out != "")
+  {
+    ROS_ERROR("Clearing PTU buffer...");
+    out = ser_->read(500);
+  }
+  ros::Duration(0.5).sleep();
+
+
+
+
+
+  ser_->write("a "); // await
   ser_->write("ft ");  // terse feedback
   ser_->write("ed ");  // disable echo
   ser_->write("ci ");  // position mode
+  ser_->write("cme "); // enable D series compatability mode
   ser_->read(20);
 
   // get pan tilt encoder res
@@ -98,6 +122,11 @@ std::string PTU::sendCommand(std::string command)
   ser_->write(command);
   ROS_DEBUG_STREAM("TX: " << command);
   std::string buffer = ser_->readline(PTU_BUFFER_LEN);
+  while(ser_->available() > 0)
+  {
+    ROS_DEBUG_STREAM("RX (disarded): " << buffer);
+    buffer = ser_->readline(PTU_BUFFER_LEN);
+  }
   ROS_DEBUG_STREAM("RX: " << buffer);
   return buffer;
 }

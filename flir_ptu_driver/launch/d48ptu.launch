@@ -1,0 +1,19 @@
+<launch>
+  <arg name="ip" default="192.168.1.17" />
+  <arg name="com" default="/tmp/PTUcom" />
+  <arg name="baud" default="9600" />
+  <arg name="port" default="4000" />
+
+  <node args="--ip $(arg ip) --com $(arg com) --port $(arg port)" pkg="flir_ptu_driver" type="ptucom.py" name="ptucom" />
+
+  <!-- When you integrate into your platform, use the provided xacro macro to include
+       the D48 URDF with your larger platform description, and have your platform's
+       joint_state_publisher subscribe to the ptu state. -->
+  <param name="robot_description" textfile="$(find flir_ptu_description)/urdf/example_d48.urdf" /> 
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+
+  <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu">
+    <param name="port" value="$(arg com)" />
+    <remap from="state" to="/joint_states" />
+  </node>
+</launch>
