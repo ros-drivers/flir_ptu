@@ -14,5 +14,8 @@ xacro_add_xacro_file(
 add_custom_target(flir_ptu_example_urdf ALL
   DEPENDS ${FLIR_PTU_DEVEL_SHARE}/urdf/example.urdf)
 
-install(FILES urdf/d46.urdf.xacro urdf/example.urdf.xacro ${FLIR_PTU_DEVEL_SHARE}/urdf/example.urdf
+install(FILES ${FLIR_PTU_DEVEL_SHARE}/urdf/example.urdf
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf)
+
+install(DIRECTORY meshes urdf
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
