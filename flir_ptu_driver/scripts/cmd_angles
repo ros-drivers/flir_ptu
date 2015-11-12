@@ -8,7 +8,7 @@ from sensor_msgs.msg import JointState
 
 
 def set_angles(pan, tilt):
-    pub = rospy.Publisher("cmd", JointState)
+    pub = rospy.Publisher("ptu/cmd", JointState)
     time.sleep(0.5)
 
     js = JointState()
