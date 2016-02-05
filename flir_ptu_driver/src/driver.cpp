@@ -207,7 +207,12 @@ bool PTU::setPosition(char type, float pos, bool block)
   }
 
   if (block)
-    while (getPosition(type) != pos) {};
+  {
+    while (getPosition(type) != pos)
+    {
+      usleep(1000);
+    }
+  }
 
   return true;
 }
