@@ -8,7 +8,13 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 
   <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu">
-    <param name="port" value="$(arg port)" />
+    <!-- FLIR PTU "connection_type" is either tty or tcp. 
+    	if "tcp", it will use "ip_addr" and "tcp_port" for the connection.
+    	Otherwise, it will use the tty "port" params --> 
+    <param name="connection_type" value="tcp" /> 
+    <param name="ip_addr" type="str" value="192.168.40.195" /> 
+    <param name="tcp_port" type="int" value="4000" /> 
+    <param name="port" value="$(arg port)" /> <!-- like "/dev/ttyUSB0" >
     <remap from="state" to="/joint_states" />
   </node>
 </launch>

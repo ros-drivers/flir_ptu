@@ -48,6 +48,11 @@
 #define PTU_POSITION 'i'
 
 #include <string>
+#include <serial/serial.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <arpa/inet.h> //inet_addr
+#include <netdb.h> //hostent
 
 namespace serial
 {
@@ -56,6 +61,24 @@ class Serial;
 
 namespace flir_ptu_driver
 {
+enum ConnectType { tty, tcp }; // connection is either tty or tcp (later maybe add udp)
+
+class TcpClient
+{
+private:
+    int port;
+    std::string address;
+    struct sockaddr_in server;
+
+public:
+    int mysock;
+    TcpClient();
+    bool conn(std::string ip_address , int port);
+    bool send_data(std::string data);
+    std::string receive(int size=512);
+    size_t readline (std::string &buffer, size_t size = 512, std::string eol = "\n");
+    void setTimeout(int secs, int usecs);
+};
 
 class PTU
 {
@@ -63,8 +86,8 @@ public:
   /** Constructor - opens port
    * \param ser serial::Serial instance ready to communciate with device.
    */
-  explicit PTU(serial::Serial* ser) :
-    ser_(ser), initialized_(false)
+  explicit PTU(ConnectType connection) :
+	    initialized_(false), ser_(NULL), tcpClient_(NULL), connection_type_(connection), connected_(false)
   {
   }
 
@@ -73,6 +96,15 @@ public:
 
   /** \return true if the serial port is open and PTU initialized. */
   bool initialized();
+
+  bool connectTTY(std::string port, int32_t baud); // for tty connection
+  bool connectTCP(std::string ip_addr, int32_t tcp_port); // for tcp connection
+  void ptuWrite(std::string command); // to tty or tcp as required
+  size_t ptuReadline(std::string &buffer, size_t size = 65536, std::string eol = "\n");
+  std::string ptuRead (size_t size = 1);
+  size_t  ptuRead (std::string &buffer, size_t size = 1);
+  void ptuFlush(); // flush, if a tty
+  size_t available (); /*! Return the number of characters in the buffer. */
 
   /**
    * \param type 'p' or 't'
@@ -197,7 +229,11 @@ protected:
    */
   std::string sendCommand(std::string command);
 
+  ConnectType connection_type_;
+  bool connected_;
+  TcpClient* tcpClient_;
   serial::Serial* ser_;
+
   bool initialized_;
 
   float tr;  ///< tilt resolution (rads/count)

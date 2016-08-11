@@ -33,7 +33,6 @@
 #include <flir_ptu_driver/driver.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
-#include <serial/serial.h>
 
 #include <string>
 
@@ -69,8 +68,8 @@ protected:
   ros::Publisher  m_joint_pub;
   ros::Subscriber m_joint_sub;
 
-  serial::Serial m_ser;
   std::string m_joint_name_prefix;
+  ConnectType m_connection_type; // connection is either tty or tcp
 };
 
 Node::Node(ros::NodeHandle& node_handle)
@@ -79,6 +78,7 @@ Node::Node(ros::NodeHandle& node_handle)
   m_updater = new diagnostic_updater::Updater();
   m_updater->setHardwareID("none");
   m_updater->add("PTU Status", this, &Node::produce_diagnostics);
+  m_connection_type = tty;
 
   ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
 }
@@ -99,36 +99,74 @@ void Node::connect()
     disconnect();
   }
 
-  // Query for serial configuration
+  // Check param to determine whether TTY or TCP connection to FLIR PTU
   std::string port;
   int32_t baud;
-  ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
-  ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
+  std::ostringstream ss;
+  std::string connection_type_string;
+  std::string ip_addr;
+  int32_t tcp_port;
+
+  /////////////////////////////////
+  // Not Getting PARAM stuff to work
+
+  //ros::NodeHandle nh;
+  ros::NodeHandle nh("~");
+  //ros::NodeHandle node_handle, n_private("~");
+
+  //if (!nh.getParam("/ptu_driver/connection_type", connection_type_string))
+  //   ROS_FATAL("[FLIR PTU::setup] parameter 'connection_type' does not exist!!");
+
+  //n_private.param<std::string>("connection_type", connection_type_string, "tty");
+  //ros::param::get("~connection_type", connection_type_string);
+  ros::param::param<std::string>("connection_type", connection_type_string, "tcp");
+  //nh.getParam("/ptu_driver/connection_type", connection_type_string);
+
+  connection_type_string = "tcp"; // TODO - THIS IS FOR DEBUGGING -- LEWIS TO CHANGE !!!
+
+  if (!strcmp("tcp", connection_type_string.c_str())) {
+	  m_connection_type = tcp;
+
+	  ros::param::param<std::string>("ip_addr", ip_addr, "128.18.40.195");
+	  ros::param::param<int32_t>("tcp_port", tcp_port, 4000);
+	  ss << connection_type_string << ":" << ip_addr << ":" << tcp_port;
+  }
+  else if (!strcmp("tty", connection_type_string.c_str())) {
+	  m_connection_type = tty;
+	  // Query for serial configuration
+	  ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
+	  ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
+	  ss << connection_type_string << ":" << port << ":" << baud;
+  }
+  else {
+		ROS_ERROR_STREAM("Unknown connection type (tty or tcp): " << connection_type_string);
+		return;
+  }
 
   // Connect to the PTU
-  ROS_INFO_STREAM("Attempting to connect to FLIR PTU on " << port);
+  ROS_INFO_STREAM("Attempting to connect to FLIR PTU on " << ss.str() );
+  m_pantilt = new PTU(m_connection_type);
 
   try
   {
-    m_ser.setPort(port);
-    m_ser.setBaudrate(baud);
-    serial::Timeout to = serial::Timeout(200, 200, 0, 200, 0);
-    m_ser.setTimeout(to);
-    m_ser.open();
+	  if (m_connection_type == tty) {
+		  m_pantilt->connectTTY(port, baud);
+	  }
+	  else if (m_connection_type == tcp) {
+		  m_pantilt->connectTCP(ip_addr, tcp_port);
+	  }
   }
   catch (serial::IOException& e)
   {
-    ROS_ERROR_STREAM("Unable to open port " << port);
+    ROS_ERROR_STREAM("Unable to open connection " << ss);
     return;
   }
 
-  ROS_INFO_STREAM("FLIR PTU serial port opened, now initializing.");
-
-  m_pantilt = new PTU(&m_ser);
+  ROS_INFO_STREAM("FLIR PTU port opened, now initializing.");
 
   if (!m_pantilt->initialize())
   {
-    ROS_ERROR_STREAM("Could not initialize FLIR PTU on " << port);
+    ROS_ERROR_STREAM("Could not initialize FLIR PTU on " << ss);
     disconnect();
     return;
   }
