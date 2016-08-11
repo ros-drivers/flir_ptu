@@ -14,7 +14,7 @@
     <param name="connection_type" value="tcp" /> 
     <param name="ip_addr" type="str" value="192.168.40.195" /> 
     <param name="tcp_port" type="int" value="4000" /> 
-    <param name="port" value="$(arg port)" /> <!-- like "/dev/ttyUSB0" >
+    <param name="port" value="$(arg port)" /> <!-- like "/dev/ttyUSB0" -->
     <remap from="state" to="/joint_states" />
   </node>
 </launch>
