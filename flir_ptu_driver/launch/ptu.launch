@@ -7,7 +7,7 @@
   <param name="robot_description" textfile="$(find flir_ptu_description)/urdf/example.urdf" /> 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 
-  <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu">
+  <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu" output="screen">
     <!-- FLIR PTU "connection_type" is either tty or tcp. 
     	if "tcp", it will use "ip_addr" and "tcp_port" for the connection.
     	Otherwise, it will use the tty "port" params --> 
@@ -15,7 +15,7 @@
     <param name="ip_addr" type="str" value="192.168.40.195" /> 
     <param name="tcp_port" type="int" value="4000" /> 
     <param name="port" value="$(arg port)" /> <!-- like "/dev/ttyUSB0" -->
-    <param name="test_pan_tilt_mode" type="bool" value="false"> <!-- test mode sends random pan/tilt every few secs -->
+    <param name="test_pan_tilt_mode" type="bool" value="false"/> <!-- test mode sends random pan/tilt every few secs -->
     <remap from="state" to="/joint_states" />
   </node>
 </launch>

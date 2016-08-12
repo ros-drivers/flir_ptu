@@ -85,7 +85,7 @@ Node::Node(ros::NodeHandle& node_handle)
   m_connection_type = tty;
 
   ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
-  ros::param::param<bool>("test_pan_tilt_mode", m_test_mode, false);
+  ros::param::param<bool>("/ptu/ptu_driver/test_pan_tilt_mode", m_test_mode, false);
 }
 
 Node::~Node()
@@ -124,7 +124,8 @@ void Node::connect()
 
   //n_private.param<std::string>("connection_type", connection_type_string, "tty");
   //ros::param::get("~connection_type", connection_type_string);
-  ros::param::param<std::string>("connection_type", connection_type_string, "tcp");
+  ros::param::param<std::string>("/ptu/ptu_driver/connection_type", connection_type_string, "tcp");
+//   nh.getParam<std::string>("connection_type", connection_type_string, "tcp");
   //nh.getParam("/ptu_driver/connection_type", connection_type_string);
 
   connection_type_string = "tcp"; // TODO - THIS IS FOR DEBUGGING -- LEWIS TO CHANGE !!!
@@ -213,6 +214,7 @@ void Node::disconnect()
 void Node::cmdCallback(const sensor_msgs::JointState::ConstPtr& msg)
 {
   ROS_DEBUG("PTU command callback.");
+  ROS_INFO("PTU command callback.");
   if (!ok()) return;
 
   if (msg->position.size() != 2 || msg->velocity.size() != 2)
@@ -292,6 +294,7 @@ void Node::spinCallback(const ros::TimerEvent&)
 
   m_updater->update();
   
+//   m_test_mode=true;
   if(m_test_mode)testPanTilt(); // TODO - remove this after testing
 }
 
