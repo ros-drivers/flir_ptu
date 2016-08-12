@@ -283,6 +283,7 @@ bool PTU::connectTTY(std::string port, int32_t baud) // for tty connection
 	}
 	ser_->setBaudrate(baud);
 	//serial::Timeout to = serial::Timeout(200, 200, 0, 200, 0);
+	// prevent lexical_cast error when tty slow. A better fix is to permit timeouts but deal with empty responseBuffer
 	serial::Timeout to = serial::Timeout(4000, 4000, 0, 200, 0);
 	ser_->setPort(port);
 	ser_->setTimeout(to);

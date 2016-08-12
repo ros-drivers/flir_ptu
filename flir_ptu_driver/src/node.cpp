@@ -70,6 +70,10 @@ protected:
 
   std::string m_joint_name_prefix;
   ConnectType m_connection_type; // connection is either tty or tcp
+  
+  private:
+  bool m_test_mode; // if true send pan and tilt commands periodically
+  void testPanTilt(void);
 };
 
 Node::Node(ros::NodeHandle& node_handle)
@@ -81,6 +85,7 @@ Node::Node(ros::NodeHandle& node_handle)
   m_connection_type = tty;
 
   ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
+  ros::param::param<bool>("test_pan_tilt_mode", m_test_mode, false);
 }
 
 Node::~Node()
@@ -232,6 +237,29 @@ void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat
   stat.add("PTU Mode", m_pantilt->getMode() == PTU_POSITION ? "Position" : "Velocity");
 }
 
+void Node::testPanTilt(void)
+{
+  // make the ptu move every 5 secs
+  static int loopCnt = 0;
+  float radian;
+  int count;
+  char pt;
+  if((++loopCnt % 500) == 100) {
+    pt = 'p';
+    radian = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) / 2.0;
+    m_pantilt->setPosition(pt, radian);
+    count = static_cast<int>(radian / m_pantilt->getResolution(pt));
+    ROS_INFO_STREAM("NODE::testPanTilt] PTU set pan " << pt << count);
+  }
+  else if((loopCnt % 500) == 300) {
+     pt = 't';
+     radian = -1.0 * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+     m_pantilt->setPosition(pt, -radian / 4.0);
+     count = static_cast<int>(radian / m_pantilt->getResolution(pt));
+     ROS_INFO_STREAM("NODE::testPanTilt] PTU set tilt " << pt << count);
+  }
+} 
+
 
 /**
  * Publishes a joint_state message with position and speed.
@@ -263,6 +291,8 @@ void Node::spinCallback(const ros::TimerEvent&)
   m_joint_pub.publish(joint_state);
 
   m_updater->update();
+  
+  if(m_test_mode)testPanTilt(); // TODO - remove this after testing
 }
 
 }  // namespace flir_ptu_driver
