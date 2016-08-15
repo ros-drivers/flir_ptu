@@ -234,14 +234,14 @@ void Node::testPanTilt(void)
   float radian;
   int count;
   char pt;
-  if((++loopCnt % 500) == 100) {
+  if((++loopCnt % 200) == 75) {
     pt = 'p';
     radian = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) / 2.0;
     m_pantilt->setPosition(pt, radian);
     count = static_cast<int>(radian / m_pantilt->getResolution(pt));
     ROS_INFO_STREAM("NODE::testPanTilt] PTU set pan " << pt << count);
   }
-  else if((loopCnt % 500) == 300) {
+  else if((loopCnt % 200) == 175) {
      pt = 't';
      radian = -1.0 * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
      m_pantilt->setPosition(pt, -radian / 4.0);
@@ -282,7 +282,7 @@ void Node::spinCallback(const ros::TimerEvent&)
 
   m_updater->update();
   
-  if(m_test_mode)testPanTilt(); // TODO - remove this after testing
+  if(m_test_mode)testPanTilt();
 }
 
 }  // namespace flir_ptu_driver

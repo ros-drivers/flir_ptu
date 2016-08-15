@@ -8,7 +8,7 @@
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 
   <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu" output="screen">
-    <param name="connection_type" type="str" value="tcp" /> <!-- either tcp (uses ip_addr and tcp_port) or tty (uses tty port) -->
+    <param name="connection_type" type="str" value="tty" /> <!-- either tcp (uses ip_addr and tcp_port) or tty (uses tty port) -->
     <param name="ip_addr" type="str" value="192.168.1.25" /> 
     <param name="tcp_port" type="int" value="4000" /> 
     <param name="port" value="$(arg port)" /> <!-- tty port, like "/dev/ttyUSB0" -->
