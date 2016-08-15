@@ -86,6 +86,7 @@ Node::Node(ros::NodeHandle& node_handle)
 
   ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
   ros::param::param<bool>("/ptu/ptu_driver/test_pan_tilt_mode", m_test_mode, false);
+  ROS_INFO_STREAM("FLIR PTU - test mode is ----- " << (m_test_mode ? "ON" : "OFF" ) << " -----");
 }
 
 Node::~Node()
@@ -112,29 +113,16 @@ void Node::connect()
   std::string ip_addr;
   int32_t tcp_port;
 
-  /////////////////////////////////
-  // Not Getting PARAM stuff to work
 
-  //ros::NodeHandle nh;
   ros::NodeHandle nh("~");
-  //ros::NodeHandle node_handle, n_private("~");
 
-  //if (!nh.getParam("/ptu_driver/connection_type", connection_type_string))
-  //   ROS_FATAL("[FLIR PTU::setup] parameter 'connection_type' does not exist!!");
-
-  //n_private.param<std::string>("connection_type", connection_type_string, "tty");
-  //ros::param::get("~connection_type", connection_type_string);
-  ros::param::param<std::string>("/ptu/ptu_driver/connection_type", connection_type_string, "tcp");
-//   nh.getParam<std::string>("connection_type", connection_type_string, "tcp");
-  //nh.getParam("/ptu_driver/connection_type", connection_type_string);
-
-  connection_type_string = "tcp"; // TODO - THIS IS FOR DEBUGGING -- LEWIS TO CHANGE !!!
+  ros::param::param<std::string>("/ptu/ptu_driver/connection_type", connection_type_string, "tty");
 
   if (!strcmp("tcp", connection_type_string.c_str())) {
 	  m_connection_type = tcp;
 
-	  ros::param::param<std::string>("ip_addr", ip_addr, "128.18.40.195");
-	  ros::param::param<int32_t>("tcp_port", tcp_port, 4000);
+	  ros::param::param<std::string>("/ptu/ptu_driver/ip_addr", ip_addr, "192.168.0.25");
+	  ros::param::param<int32_t>("/ptu/ptu_driver/tcp_port", tcp_port, 4000);
 	  ss << connection_type_string << ":" << ip_addr << ":" << tcp_port;
   }
   else if (!strcmp("tty", connection_type_string.c_str())) {
@@ -214,7 +202,7 @@ void Node::disconnect()
 void Node::cmdCallback(const sensor_msgs::JointState::ConstPtr& msg)
 {
   ROS_DEBUG("PTU command callback.");
-  ROS_INFO("PTU command callback.");
+
   if (!ok()) return;
 
   if (msg->position.size() != 2 || msg->velocity.size() != 2)
@@ -294,7 +282,6 @@ void Node::spinCallback(const ros::TimerEvent&)
 
   m_updater->update();
   
-//   m_test_mode=true;
   if(m_test_mode)testPanTilt(); // TODO - remove this after testing
 }
 

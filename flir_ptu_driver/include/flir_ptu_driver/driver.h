@@ -49,10 +49,7 @@
 
 #include <string>
 #include <serial/serial.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h> //inet_addr
-#include <netdb.h> //hostent
+#include <flir_ptu_driver/tcp_client.h>
 
 namespace serial
 {
@@ -62,23 +59,6 @@ class Serial;
 namespace flir_ptu_driver
 {
 enum ConnectType { tty, tcp }; // connection is either tty or tcp (later maybe add udp)
-
-class TcpClient
-{
-private:
-    int port;
-    std::string address;
-    struct sockaddr_in server;
-
-public:
-    int mysock;
-    TcpClient();
-    bool conn(std::string ip_address , int port);
-    bool send_data(std::string data);
-    std::string receive(int size=512);
-    size_t readline (std::string &buffer, size_t size = 512, std::string eol = "\n");
-    void setTimeout(int secs, int usecs);
-};
 
 class PTU
 {
