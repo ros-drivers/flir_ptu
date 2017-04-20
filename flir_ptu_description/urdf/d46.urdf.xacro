@@ -64,20 +64,9 @@
   <xacro:macro name="ptu_d46" params="name">
     <d46_stepper_module ptu_name="${name}" joint_name="pan" />
     <d46_stepper_module ptu_name="${name}" joint_name="tilt" />
-    <link name="${name}_base_link">
-<inertial>
-			<mass value="2e-06"/>
-			<inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
-		</inertial>
-    </link>
-    <link name="${name}_tilted_link"/>
-      
-    <link name="${name}_mount_link">
-<inertial>
-			<mass value="2e-06"/>
-			<inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
-		</inertial>
-    </link>
+    <link name="${name}_base_link" />
+    <link name="${name}_tilted_link" />
+    <link name="${name}_mount_link" />
 
     <!-- There's an offset between the origin of the pan joint and the origin of 
          the overall device, which is between the mounting screws on its base. -->
