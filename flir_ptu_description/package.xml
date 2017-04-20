@@ -4,7 +4,7 @@
   <version>0.1.4</version>
   <description>URDF description the FLIR PTUs, currently the D46.</description>
 
-  <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
+  <maintainer email="dash@clearpathrobotics.com">Devon Ash</maintainer>
   <url>http://wiki.ros.org/flir_ptu_driver</url>
 
   <license>BSD</license>
