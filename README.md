@@ -4,6 +4,7 @@ flir_ptu
 Basic serial ROS driver for FLIR PTUs. Currently tested with:
 
  - [FLIR D46](http://www.flir.com/mcs/view/?id=53707)
+ - [FLIR D48E](http://www.flir.com/mcs/view/?id=53670) using either tty or tcp
 
 
 License

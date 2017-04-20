@@ -17,7 +17,7 @@ include_directories(include
 )
 
 ## Declare a cpp library
-add_library(flir_ptu_driver src/driver.cpp)
+add_library(flir_ptu_driver src/driver.cpp src/tcp_client.cpp)
 target_link_libraries(flir_ptu_driver ${catkin_LIBRARIES})
 
 ## Declare a cpp executable

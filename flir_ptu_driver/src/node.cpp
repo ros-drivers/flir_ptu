@@ -33,7 +33,6 @@
 #include <flir_ptu_driver/driver.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
-#include <serial/serial.h>
 
 #include <string>
 
@@ -69,8 +68,12 @@ protected:
   ros::Publisher  m_joint_pub;
   ros::Subscriber m_joint_sub;
 
-  serial::Serial m_ser;
   std::string m_joint_name_prefix;
+  ConnectType m_connection_type; // connection is either tty or tcp
+  
+  private:
+  bool m_test_mode; // if true send pan and tilt commands periodically
+  void testPanTilt(void);
 };
 
 Node::Node(ros::NodeHandle& node_handle)
@@ -79,8 +82,11 @@ Node::Node(ros::NodeHandle& node_handle)
   m_updater = new diagnostic_updater::Updater();
   m_updater->setHardwareID("none");
   m_updater->add("PTU Status", this, &Node::produce_diagnostics);
+  m_connection_type = tty;
 
   ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
+  ros::param::param<bool>("/ptu/ptu_driver/test_pan_tilt_mode", m_test_mode, false);
+  ROS_INFO_STREAM("FLIR PTU - test mode is ----- " << (m_test_mode ? "ON" : "OFF" ) << " -----");
 }
 
 Node::~Node()
@@ -99,36 +105,62 @@ void Node::connect()
     disconnect();
   }
 
-  // Query for serial configuration
+  // Check param to determine whether TTY or TCP connection to FLIR PTU
   std::string port;
   int32_t baud;
-  ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
-  ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
+  std::ostringstream ss;
+  std::string connection_type_string;
+  std::string ip_addr;
+  int32_t tcp_port;
+
+
+  ros::NodeHandle nh("~");
+
+  ros::param::param<std::string>("/ptu/ptu_driver/connection_type", connection_type_string, "tty");
+
+  if (!strcmp("tcp", connection_type_string.c_str())) {
+	  m_connection_type = tcp;
+
+	  ros::param::param<std::string>("/ptu/ptu_driver/ip_addr", ip_addr, "192.168.0.25");
+	  ros::param::param<int32_t>("/ptu/ptu_driver/tcp_port", tcp_port, 4000);
+	  ss << connection_type_string << ":" << ip_addr << ":" << tcp_port;
+  }
+  else if (!strcmp("tty", connection_type_string.c_str())) {
+	  m_connection_type = tty;
+	  // Query for serial configuration
+	  ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
+	  ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
+	  ss << connection_type_string << ":" << port << ":" << baud;
+  }
+  else {
+		ROS_ERROR_STREAM("Unknown connection type (tty or tcp): " << connection_type_string);
+		return;
+  }
 
   // Connect to the PTU
-  ROS_INFO_STREAM("Attempting to connect to FLIR PTU on " << port);
+  ROS_INFO_STREAM("Attempting to connect to FLIR PTU on " << ss.str() );
+  m_pantilt = new PTU(m_connection_type);
 
   try
   {
-    m_ser.setPort(port);
-    m_ser.setBaudrate(baud);
-    serial::Timeout to = serial::Timeout(200, 200, 0, 200, 0);
-    m_ser.setTimeout(to);
-    m_ser.open();
+	  if (m_connection_type == tty) {
+		  m_pantilt->connectTTY(port, baud);
+	  }
+	  else if (m_connection_type == tcp) {
+		  m_pantilt->connectTCP(ip_addr, tcp_port);
+	  }
   }
   catch (serial::IOException& e)
   {
-    ROS_ERROR_STREAM("Unable to open port " << port);
+    ROS_ERROR_STREAM("Unable to open connection " << ss);
     return;
   }
 
-  ROS_INFO_STREAM("FLIR PTU serial port opened, now initializing.");
-
-  m_pantilt = new PTU(&m_ser);
+  ROS_INFO_STREAM("FLIR PTU port opened, now initializing.");
 
   if (!m_pantilt->initialize())
   {
-    ROS_ERROR_STREAM("Could not initialize FLIR PTU on " << port);
+    ROS_ERROR_STREAM("Could not initialize FLIR PTU on " << ss);
     disconnect();
     return;
   }
@@ -170,6 +202,7 @@ void Node::disconnect()
 void Node::cmdCallback(const sensor_msgs::JointState::ConstPtr& msg)
 {
   ROS_DEBUG("PTU command callback.");
+
   if (!ok()) return;
 
   if (msg->position.size() != 2 || msg->velocity.size() != 2)
@@ -193,6 +226,29 @@ void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat
   stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "All normal.");
   stat.add("PTU Mode", m_pantilt->getMode() == PTU_POSITION ? "Position" : "Velocity");
 }
+
+void Node::testPanTilt(void)
+{
+  // make the ptu move every 5 secs
+  static int loopCnt = 0;
+  float radian;
+  int count;
+  char pt;
+  if((++loopCnt % 200) == 75) {
+    pt = 'p';
+    radian = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) / 2.0;
+    m_pantilt->setPosition(pt, radian);
+    count = static_cast<int>(radian / m_pantilt->getResolution(pt));
+    ROS_INFO_STREAM("NODE::testPanTilt] PTU set pan " << pt << count);
+  }
+  else if((loopCnt % 200) == 175) {
+     pt = 't';
+     radian = -1.0 * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+     m_pantilt->setPosition(pt, -radian / 4.0);
+     count = static_cast<int>(radian / m_pantilt->getResolution(pt));
+     ROS_INFO_STREAM("NODE::testPanTilt] PTU set tilt " << pt << count);
+  }
+} 
 
 
 /**
@@ -225,6 +281,8 @@ void Node::spinCallback(const ros::TimerEvent&)
   m_joint_pub.publish(joint_state);
 
   m_updater->update();
+  
+  if(m_test_mode)testPanTilt();
 }
 
 }  // namespace flir_ptu_driver
