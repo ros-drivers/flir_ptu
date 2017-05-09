@@ -51,6 +51,12 @@ T parseResponse(std::string responseBuffer)
 {
   std::string trimmed = responseBuffer.substr(1);
   boost::trim(trimmed);
+
+  if (trimmed.empty())
+  {
+      trimmed = "0";
+  }
+
   T parsed = lexical_cast<T>(trimmed);
   ROS_DEBUG_STREAM("Parsed response value: " << parsed);
   return parsed;
