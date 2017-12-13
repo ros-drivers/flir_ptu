@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot name="ptu_d46"
-       xmlns:xacro="http://ros.org/wiki/xacro">
+       xmlns:xacro="http://www.ros.org/wiki/xacro">
   <link name="base_link" />
 
   <!-- Include and invoke the macro which creates a D46 -->
@@ -13,7 +13,7 @@
     <child link="ptu_base_link"/>
     <origin xyz="0 0 0"/>
   </joint>
-  
+
   <!-- If you had a lidar or some other device mounted on the PTU, you would create another
        fixed joint here between the ptu_mount link and the origin of the device. -->
 </robot>
