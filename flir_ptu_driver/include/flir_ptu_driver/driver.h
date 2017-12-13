@@ -36,6 +36,7 @@
 #define PTU_BUFFER_LEN 255
 #define PTU_DEFAULT_PORT "/dev/ttyUSB0"
 #define PTU_DEFAULT_HZ 10
+#define PTU_DEFAULT_VEL 0.0
 
 // command defines
 #define PTU_PAN 'p'
