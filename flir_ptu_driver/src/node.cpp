@@ -71,6 +71,7 @@ protected:
 
   serial::Serial m_ser;
   std::string m_joint_name_prefix;
+  double default_velocity_;
 };
 
 Node::Node(ros::NodeHandle& node_handle)
@@ -104,6 +105,7 @@ void Node::connect()
   int32_t baud;
   ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
   ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
+  ros::param::param<double>("~default_velocity", default_velocity_, PTU_DEFAULT_VEL);
 
   // Connect to the PTU
   ROS_INFO_STREAM("Attempting to connect to FLIR PTU on " << port);
@@ -172,16 +174,28 @@ void Node::cmdCallback(const sensor_msgs::JointState::ConstPtr& msg)
   ROS_DEBUG("PTU command callback.");
   if (!ok()) return;
 
-  if (msg->position.size() != 2 || msg->velocity.size() != 2)
+  if (msg->position.size() != 2)
   {
-    ROS_ERROR("JointState command to PTU has wrong number of elements.");
+    ROS_ERROR("JointState command to PTU has wrong number of position elements.");
     return;
   }
 
   double pan = msg->position[0];
   double tilt = msg->position[1];
-  double panspeed = msg->velocity[0];
-  double tiltspeed = msg->velocity[1];
+  double panspeed, tiltspeed;
+
+  if (msg->velocity.size() == 2)
+  {
+    panspeed = msg->velocity[0];
+    tiltspeed = msg->velocity[1];
+  }
+  else
+  {
+    ROS_WARN_ONCE("JointState command to PTU has wrong number of velocity elements; using default velocity.");
+    panspeed = default_velocity_;
+    tiltspeed = default_velocity_;
+  }
+
   m_pantilt->setPosition(PTU_PAN, pan);
   m_pantilt->setPosition(PTU_TILT, tilt);
   m_pantilt->setSpeed(PTU_PAN, panspeed);

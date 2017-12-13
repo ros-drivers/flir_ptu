@@ -1,13 +1,12 @@
 <?xml version="1.0"?>
-<robot name="ptu_d46"
-       xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="ptu_d46" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <xacro:property name="pan_velocity" value="1.0" />
   <xacro:property name="pan_range" value="2.775" />
   <xacro:property name="tilt_velocity" value="1.0" />
   <xacro:property name="tilt_up_range" value="0.52" />
   <xacro:property name="tilt_down_range" value="0.82" />
   <xacro:property name="joint_effort" value="30" />
-    
+
   <xacro:macro name="d46_stepper_module"
                params="ptu_name joint_name">
     <link name="${ptu_name}_${joint_name}_link">
@@ -48,7 +47,7 @@
         <material>Gazebo/DarkGrey</material>
     </gazebo>
   </xacro:macro>
-  
+
   <xacro:macro name="d46_transmission" params="name">
     <transmission name="${name}_trans">
       <type>transmission_interface/SimpleTransmission</type>
@@ -78,7 +77,7 @@
         </inertial>
     </link>
 
-    <!-- There's an offset between the origin of the pan joint and the origin of 
+    <!-- There's an offset between the origin of the pan joint and the origin of
          the overall device, which is between the mounting screws on its base. -->
     <joint name="${name}_base" type="fixed">
       <parent link="${name}_base_link"/>
@@ -95,7 +94,7 @@
       <limit lower="${-pan_range}" upper="${pan_range}"
              effort="${joint_effort}" velocity="${pan_velocity}" />
     </joint>
-    
+
     <d46_transmission name="${name}_pan" />
 
     <!-- The tilt joint -->
@@ -107,7 +106,7 @@
       <limit lower="${-tilt_down_range}" upper="${tilt_up_range}"
              effort="${joint_effort}" velocity="${tilt_velocity}" />
     </joint>
-    
+
     <d46_transmission name="${name}_tilt" />
 
     <!-- Fixed joint to provide a convenient attachment point for accessories. -->
@@ -116,6 +115,6 @@
       <child link="${name}_mount_link"/>
       <origin xyz="0 0 -0.03912" rpy="3.1416 0 0" />
     </joint>
-    
+
   </xacro:macro>
 </robot>
