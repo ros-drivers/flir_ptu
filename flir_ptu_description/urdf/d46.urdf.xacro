@@ -60,7 +60,7 @@
     </transmission>
   </xacro:macro>
 
-  <xacro:macro name="ptu_d46" params="name">
+  <xacro:macro name="ptu_d46" params="name pan_offset:=0.0">
     <d46_stepper_module ptu_name="${name}" joint_name="pan" />
     <d46_stepper_module ptu_name="${name}" joint_name="tilt" />
     <link name="${name}_base_link">
@@ -88,7 +88,7 @@
     <!-- The pan joint -->
     <joint name="${name}_pan" type="revolute">
       <parent link="${name}_pan_link" />
-      <origin xyz="0 0 0.066" rpy="-1.5708 0 0" />
+      <origin xyz="0 0 0.066" rpy="-1.5708 0 ${pan_offset}" />
       <child link="${name}_tilt_link" />
       <axis xyz="0 -1 0" rpy="3.14159 0 0" />
       <limit lower="${-pan_range}" upper="${pan_range}"
