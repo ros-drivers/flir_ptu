@@ -1,6 +1,6 @@
 <launch>
   <arg name="port" default="/dev/ptu" />
-  <arg name="limits" default="false" /> <!-- Disable software range limits-->
+  <arg name="limits" default="true" /> <!-- Disable software range limits by setting to false-->
 
   <!-- When you integrate into your platform, use the provided xacro macro to include
        the D46 URDF with your larger platform description, and have your platform's

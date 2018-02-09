@@ -103,7 +103,9 @@ void Node::connect()
   // Query for serial configuration
   std::string port;
   int32_t baud;
+  bool limit;
   ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
+  ros::param::param<bool>("~limits", limit, true);
   ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
   ros::param::param<double>("~default_velocity", default_velocity_, PTU_DEFAULT_VEL);
 
@@ -133,6 +135,12 @@ void Node::connect()
     ROS_ERROR_STREAM("Could not initialize FLIR PTU on " << port);
     disconnect();
     return;
+  }
+
+  if (!limit)
+  {
+    m_pantilt->disable_limits();
+    ROS_INFO("FLIR PTU limits disabled.");
   }
 
   ROS_INFO("FLIR PTU initialized.");

@@ -72,6 +72,9 @@ public:
   /** \return true if initialization succeeds. */
   bool initialize();
 
+  /**  \return true if PTU software motion limits are disabled. */
+  bool disable_limits();
+
   /** \return true if the serial port is open and PTU initialized. */
   bool initialized();
 
@@ -183,6 +186,7 @@ private:
   int TMax;  ///< Max Tilt in Counts
   int PMin;  ///< Min Pan in Counts
   int PMax;  ///< Max Pan in Counts
+  bool Lim;  ///< Position Limits enabled 
 
   // Speed Limits
   int TSMin;  ///< Min Tilt Speed in Counts/second

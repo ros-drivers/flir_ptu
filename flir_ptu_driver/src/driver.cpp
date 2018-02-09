@@ -67,6 +67,14 @@ bool PTU::initialized()
   return !!ser_ && ser_->isOpen() && initialized_;
 }
 
+bool PTU::disable_limits()
+{
+  ser_->write("ld ");  // Disable Limits
+  ser_->read(20);
+  Lim = false;
+  return true;
+}
+
 bool PTU::initialize()
 {
   ser_->write("ft ");  // terse feedback
@@ -86,6 +94,7 @@ bool PTU::initialize()
   PSMax = getLimit(PTU_PAN, PTU_MAX_SPEED);
   TSMin = getLimit(PTU_TILT, PTU_MIN_SPEED);
   TSMax = getLimit(PTU_TILT, PTU_MAX_SPEED);
+  Lim = true;
 
   if (tr <= 0 || pr <= 0 || PMin == -1 || PMax == -1 || TMin == -1 || TMax == -1)
   {
@@ -196,11 +205,13 @@ bool PTU::setPosition(char type, float pos, bool block)
   int count = static_cast<int>(pos / getResolution(type));
 
   // Check limits
-  if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax))
-  {
-    ROS_ERROR("Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n",
-              type, pos, count, (type == PTU_TILT ? TMin : PMin), (type == PTU_TILT ? TMax : PMax));
-    return false;
+  if (Lim){
+    if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax))
+    {
+      ROS_ERROR("Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n",
+                type, pos, count, (type == PTU_TILT ? TMin : PMin), (type == PTU_TILT ? TMax : PMax));
+      return false;
+    }
   }
 
   std::string buffer = sendCommand(std::string() + type + "p" +
