@@ -33,6 +33,7 @@
 #include <flir_ptu_driver/driver.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
+#include <std_msgs/Bool.h>
 #include <serial/serial.h>
 
 #include <string>
@@ -59,6 +60,7 @@ public:
 
   // Callback Methods
   void cmdCallback(const sensor_msgs::JointState::ConstPtr& msg);
+  void resetCallback(const std_msgs::Bool::ConstPtr& msg);
 
   void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat);
 
@@ -68,6 +70,7 @@ protected:
   ros::NodeHandle m_node;
   ros::Publisher  m_joint_pub;
   ros::Subscriber m_joint_sub;
+  ros::Subscriber m_reset_sub;
 
   serial::Serial m_ser;
   std::string m_joint_name_prefix;
@@ -164,6 +167,9 @@ void Node::connect()
   // Subscribers : Only subscribe to the most recent instructions
   m_joint_sub = m_node.subscribe
                 <sensor_msgs::JointState>("cmd", 1, &Node::cmdCallback, this);
+
+  m_reset_sub = m_node.subscribe<std_msgs::Bool>("reset",1, &Node::resetCallback, this);
+
 }
 
 /** Disconnect */
@@ -174,6 +180,13 @@ void Node::disconnect()
     delete m_pantilt;   // Closes the connection
     m_pantilt = NULL;   // Marks the service as disconnected
   }
+}
+
+/** Callback for resetting PTU */
+void Node::resetCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+  ROS_INFO("Resetting the PTU");
+  m_pantilt->home();
 }
 
 /** Callback for getting new Goal JointState */
