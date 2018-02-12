@@ -33,8 +33,8 @@
 #include <flir_ptu_driver/driver.h>
 #include <ros/ros.h>
 #include <sensor_msgs/JointState.h>
-#include <std_msgs/Bool.h>
 #include <serial/serial.h>
+#include <std_msgs/Bool.h>
 
 #include <string>
 
@@ -108,7 +108,7 @@ void Node::connect()
   int32_t baud;
   bool limit;
   ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
-  ros::param::param<bool>("~limits", limit, true);
+  ros::param::param<bool>("~limits_enabled", limit, true);
   ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
   ros::param::param<double>("~default_velocity", default_velocity_, PTU_DEFAULT_VEL);
 
@@ -142,7 +142,7 @@ void Node::connect()
 
   if (!limit)
   {
-    m_pantilt->disable_limits();
+    m_pantilt->disableLimits();
     ROS_INFO("FLIR PTU limits disabled.");
   }
 
@@ -168,8 +168,8 @@ void Node::connect()
   m_joint_sub = m_node.subscribe
                 <sensor_msgs::JointState>("cmd", 1, &Node::cmdCallback, this);
 
-  m_reset_sub = m_node.subscribe<std_msgs::Bool>("reset",1, &Node::resetCallback, this);
-
+  m_reset_sub = m_node.subscribe
+                <std_msgs::Bool>("reset",1, &Node::resetCallback, this);
 }
 
 /** Disconnect */

@@ -1,6 +1,6 @@
 <launch>
-  <arg name="port" default="/dev/ptu" />
-  <arg name="limits" default="false" /> <!-- Disable software range limits by setting to false-->
+  <arg name="port" default="/dev/ptu" /> <!-- Suggest using Udev rules to make a consistent serial port -->
+  <arg name="limits_enabled" default="false" /> <!-- Disable software range limits by setting to false -->
 
   <!-- When you integrate into your platform, use the provided xacro macro to include
        the D46 URDF with your larger platform description, and have your platform's
@@ -10,7 +10,7 @@
 
   <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu" respawn="true">
     <param name="port" value="$(arg port)" />
-    <param name="limits" value="$(arg limits)" />
+    <param name="limits_enabled" value="$(arg limits_enabled)" />
     <remap from="state" to="/joint_states" />
   </node>
 </launch>

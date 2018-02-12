@@ -67,7 +67,7 @@ bool PTU::initialized()
   return !!ser_ && ser_->isOpen() && initialized_;
 }
 
-bool PTU::disable_limits()
+bool PTU::disableLimits()
 {
   ser_->write("ld ");  // Disable Limits
   ser_->read(20);
@@ -153,7 +153,7 @@ float PTU::getRes(char type)
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR("Error getting pan-tilt res");
+    ROS_ERROR_THROTTLE(30,"Error getting pan-tilt res");
     return -1;
   }
 
@@ -171,7 +171,7 @@ int PTU::getLimit(char type, char limType)
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR("Error getting pan-tilt limit");
+    ROS_ERROR_THROTTLE(30,"Error getting pan-tilt limit");
     return -1;
   }
 
@@ -188,7 +188,7 @@ float PTU::getPosition(char type)
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR("Error getting pan-tilt pos");
+    ROS_ERROR_THROTTLE(30,"Error getting pan-tilt pos");
     return -1;
   }
 
@@ -205,10 +205,11 @@ bool PTU::setPosition(char type, float pos, bool block)
   int count = static_cast<int>(pos / getResolution(type));
 
   // Check limits
-  if (Lim){
+  if (Lim)
+  {
     if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax))
     {
-      ROS_ERROR("Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n",
+      ROS_ERROR_THROTTLE(30,"Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n",
                 type, pos, count, (type == PTU_TILT ? TMin : PMin), (type == PTU_TILT ? TMax : PMax));
       return false;
     }

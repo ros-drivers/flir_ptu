@@ -73,7 +73,7 @@ public:
   bool initialize();
 
   /**  \return true if PTU software motion limits are disabled. */
-  bool disable_limits();
+  bool disableLimits();
 
   /** \return true if the serial port is open and PTU initialized. */
   bool initialized();
