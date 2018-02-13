@@ -1,5 +1,6 @@
 <launch>
-  <arg name="port" default="/dev/ttyUSB0" />
+  <arg name="port" default="/dev/ptu" /> <!-- Suggest using Udev rules to make a consistent serial port -->
+  <arg name="limits_enabled" default="false" /> <!-- Disable software range limits by setting to false -->
 
   <!-- When you integrate into your platform, use the provided xacro macro to include
        the D46 URDF with your larger platform description, and have your platform's
@@ -7,8 +8,9 @@
   <param name="robot_description" textfile="$(find flir_ptu_description)/urdf/example.urdf" /> 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
 
-  <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu">
+  <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu" respawn="true">
     <param name="port" value="$(arg port)" />
+    <param name="limits_enabled" value="$(arg limits_enabled)" />
     <remap from="state" to="/joint_states" />
   </node>
 </launch>
