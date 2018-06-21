@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2018-06-21)
+------------------
 * Linter fixes.
 * Added udev rule (`#39 <https://github.com/ros-drivers/flir_ptu/issues/39>`_)
 * Added disable limits and home commands (`#38 <https://github.com/ros-drivers/flir_ptu/issues/38>`_)

@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2018-06-21)
+------------------
 * Add pan offset for centering joint based on calibration
 * Update xacro URL to include www to not give warnings from redefinition
 * Fixed spaces, fixed gazebo errors about inertia
