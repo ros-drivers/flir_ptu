@@ -169,7 +169,7 @@ void Node::connect()
                 <sensor_msgs::JointState>("cmd", 1, &Node::cmdCallback, this);
 
   m_reset_sub = m_node.subscribe
-                <std_msgs::Bool>("reset",1, &Node::resetCallback, this);
+                <std_msgs::Bool>("reset", 1, &Node::resetCallback, this);
 }
 
 /** Disconnect */

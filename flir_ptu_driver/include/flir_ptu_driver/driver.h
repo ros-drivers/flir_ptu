@@ -186,7 +186,7 @@ private:
   int TMax;  ///< Max Tilt in Counts
   int PMin;  ///< Min Pan in Counts
   int PMax;  ///< Max Pan in Counts
-  bool Lim;  ///< Position Limits enabled 
+  bool Lim;  ///< Position Limits enabled
 
   // Speed Limits
   int TSMin;  ///< Min Tilt Speed in Counts/second
