@@ -2,6 +2,21 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Add pan offset for centering joint based on calibration
+* Update xacro URL to include www to not give warnings from redefinition
+* Fixed spaces, fixed gazebo errors about inertia
+* Revert "Fix gazebo errors"
+* Updated package.xml for my maintainership
+* Fix gazebo errors
+* updated CMakeLists to install new meshes folder
+* added mesh to visual so openrave can view it, added in transmissions
+* Added transmissions and inertial elements for sim
+* Reverse pan joint direction.
+  Per `#15 <https://github.com/ros-drivers/flir_ptu/issues/15>`_.
+* Contributors: Allison Thackston, Dash, Devon Ash, DevonAsh, Mike Purvis, Will Baker
+
 0.1.4 (2014-07-17)
 ------------------
 * Fix weird urdf issue with floating tilt joint.
