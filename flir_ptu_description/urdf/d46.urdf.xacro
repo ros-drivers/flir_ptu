@@ -112,7 +112,7 @@
              effort="${joint_effort}" velocity="${pan_velocity}" />
     </joint>
 
-    <d46_transmission name="${name}_pan" />
+    <xacro:d46_transmission name="${name}_pan" />
 
     <!-- The tilt joint -->
     <joint name="${name}_tilt" type="revolute">
@@ -124,7 +124,7 @@
              effort="${joint_effort}" velocity="${tilt_velocity}" />
     </joint>
 
-    <d46_transmission name="${name}_tilt" />
+    <xacro:d46_transmission name="${name}_tilt" />
 
     <!-- Fixed joint to provide a convenient attachment point for accessories. -->
     <joint name="${name}_mount" type="fixed">
