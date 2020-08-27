@@ -5,7 +5,7 @@
 
   <!-- Include and invoke the macro which creates a D46 -->
   <xacro:include filename="d46.urdf.xacro" />
-  <ptu_d46 name="ptu" />
+  <xacro:ptu_d46 name="ptu" />
 
   <!-- Create a fixed joint to connect the PTU to the rest of the robot -->
   <joint name="base_to_ptu_base" type="fixed">
