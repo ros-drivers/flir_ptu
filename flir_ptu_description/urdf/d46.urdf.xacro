@@ -75,6 +75,11 @@
         </inertial>
     </link>
     <link name="${name}_tilted_link">
+      <inertial>
+        <mass value="2e-06"/>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <inertia ixx="1.1e-09" ixy="0" ixz="0" iyy="1.1e-09" iyz="0" izz="1.1e-09"/>
+      </inertial>
       <visual>
         <material name="ptu_body_color">
           <color rgba="0.3 0.3 0.3 1.0" />
