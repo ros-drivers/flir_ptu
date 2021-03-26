@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.1 (2021-03-26)
+------------------
 * Don't load the description & start the robot_state_publisher by default
 * Contributors: Chris Iverach-Brereton
 

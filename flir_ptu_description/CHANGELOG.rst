@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.1 (2021-03-26)
+------------------
 * Fix missing xacro namespace prefixes
 * Updated PTU mesh geometry (`#40 <https://github.com/ros-drivers/flir_ptu/issues/40>`_)
 * Contributors: Dave Niewinski, Robert Haschke
