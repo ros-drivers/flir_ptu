@@ -2,6 +2,12 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fix missing xacro namespace prefixes
+* Updated PTU mesh geometry (`#40 <https://github.com/ros-drivers/flir_ptu/issues/40>`_)
+* Contributors: Dave Niewinski, Robert Haschke
+
 0.2.0 (2018-06-21)
 ------------------
 * Add pan offset for centering joint based on calibration

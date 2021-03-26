@@ -2,6 +2,11 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Don't load the description & start the robot_state_publisher by default
+* Contributors: Chris Iverach-Brereton
+
 0.2.0 (2018-06-21)
 ------------------
 * Linter fixes.
