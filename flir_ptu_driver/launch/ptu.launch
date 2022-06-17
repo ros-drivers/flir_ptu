@@ -14,6 +14,6 @@
   <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu" respawn="true">
     <param name="port" value="$(arg port)" />
     <param name="limits_enabled" value="$(arg limits_enabled)" />
-    <remap from="state" to="/joint_states" />
+    <remap from="state" to="joint_states" />
   </node>
 </launch>
