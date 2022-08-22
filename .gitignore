@@ -40,3 +40,5 @@ docs/
 
 # Mac os
 .DS_Store
+
+**/CATKIN_IGNORE
