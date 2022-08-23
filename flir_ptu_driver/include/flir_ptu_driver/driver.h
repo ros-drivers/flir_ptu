@@ -76,7 +76,7 @@ public:
    * \param ser serial::Serial instance ready to communciate with device.
    */
   explicit PTU(ConnectType connection) :
-	    initialized_(false), ser_(NULL), tcpClient_(NULL), connection_type_(connection), connected_(false)
+      initialized_(false), ser_(NULL), tcpClient_(NULL), connection_type_(connection), connected_(false)
   {
   }
 
