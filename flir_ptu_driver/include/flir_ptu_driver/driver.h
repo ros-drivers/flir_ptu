@@ -31,12 +31,19 @@
 #ifndef FLIR_PTU_DRIVER_DRIVER_H
 #define FLIR_PTU_DRIVER_DRIVER_H
 
+// comm defines
+#define PTU_DEFAULT_CONNECTION "tty"
+
 // serial defines
 #define PTU_DEFAULT_BAUD 9600
 #define PTU_BUFFER_LEN 255
 #define PTU_DEFAULT_PORT "/dev/ttyUSB0"
 #define PTU_DEFAULT_HZ 10
 #define PTU_DEFAULT_VEL 0.0
+
+// tcp defines
+#define PTU_DEFAULT_TCP_IP "192.168.131.70"
+#define PTU_DEFAULT_TCP_PORT 4000
 
 // command defines
 #define PTU_PAN 'p'
@@ -47,8 +54,11 @@
 #define PTU_MAX_SPEED 'u'
 #define PTU_VELOCITY 'v'
 #define PTU_POSITION 'i'
+#define PTU_LIMITS true
 
 #include <string>
+#include <serial/serial.h>
+#include <flir_ptu_driver/tcp_client.h>
 
 namespace serial
 {
@@ -57,6 +67,7 @@ class Serial;
 
 namespace flir_ptu_driver
 {
+enum ConnectType { tty, tcp }; // connection is either tty or tcp (later maybe add udp)
 
 class PTU
 {
@@ -64,8 +75,8 @@ public:
   /** Constructor - opens port
    * \param ser serial::Serial instance ready to communciate with device.
    */
-  explicit PTU(serial::Serial* ser) :
-    ser_(ser), initialized_(false)
+  explicit PTU(ConnectType connection) :
+      initialized_(false), ser_(NULL), tcpClient_(NULL), connection_type_(connection), connected_(false)
   {
   }
 
@@ -77,6 +88,15 @@ public:
 
   /** \return true if the serial port is open and PTU initialized. */
   bool initialized();
+
+  bool connectTTY(std::string port, int32_t baud); // for tty connection
+  bool connectTCP(std::string ip_addr, int32_t tcp_port); // for tcp connection
+  void ptuWrite(std::string command); // to tty or tcp as required
+  size_t ptuReadline(std::string &buffer, size_t size = 65536, std::string eol = "\n");
+  std::string ptuRead (size_t size = 1);
+  size_t  ptuRead (std::string &buffer, size_t size = 1);
+  void ptuFlush(); // flush, if a tty
+  size_t available (); /*! Return the number of characters in the buffer. */
 
   /**
    * \param type 'p' or 't'
@@ -202,7 +222,11 @@ protected:
    */
   std::string sendCommand(std::string command);
 
+  ConnectType connection_type_;
+  bool connected_;
+  TcpClient* tcpClient_;
   serial::Serial* ser_;
+
   bool initialized_;
 
   float tr;  ///< tilt resolution (rads/count)
