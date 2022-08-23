@@ -11,9 +11,14 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
   </group>
 
-  <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu" respawn="true">
-    <param name="port" value="$(arg port)" />
+  <node name="ptu_driver" pkg="flir_ptu_driver" type="ptu_node" ns="ptu" output="screen">
     <param name="limits_enabled" value="$(arg limits_enabled)" />
+    <param name="test_pan_tilt_mode" type="bool" value="false"/>  <!-- test mode sends random pan/tilt every few secs -->
+    <param name="connection_type" type="str" value="tty" />       <!-- either tcp (uses ip_addr and tcp_port) or tty (uses tty port) -->
+    <param name="port" value="$(arg port)" />                     <!-- tty port, like "/dev/ttyUSB0" -->
+    <param name="ip_addr" type="str" value="192.168.131.70" />
+    <param name="tcp_port" type="int" value="4000" />
+
     <remap from="state" to="/joint_states" />
   </node>
 </launch>

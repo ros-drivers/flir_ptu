@@ -36,9 +36,10 @@
 
 #include <math.h>
 #include <string>
+#include <sys/ioctl.h>
 
 using boost::lexical_cast;
-
+using namespace std;
 
 namespace flir_ptu_driver
 {
@@ -49,22 +50,26 @@ namespace flir_ptu_driver
 template<typename T>
 T parseResponse(std::string responseBuffer)
 {
-  std::string trimmed = responseBuffer.substr(1);
-  boost::trim(trimmed);
+  T parsed; // declared outside 'try' so gdb debugger can see it
 
-  if (trimmed.empty())
+  try
   {
-      trimmed = "0";
+    std::string trimmed = responseBuffer.substr(1); // skip the leading '*'
+    boost::trim(trimmed); // remove leading and trailing spaces
+    parsed = lexical_cast<T>(trimmed);
+    ROS_DEBUG_STREAM("Parsed response value: " << parsed);
+  }
+  catch (boost::exception& e)
+  {
+    ROS_ERROR_STREAM("Unable to parse " << responseBuffer);
   }
 
-  T parsed = lexical_cast<T>(trimmed);
-  ROS_DEBUG_STREAM("Parsed response value: " << parsed);
   return parsed;
 }
 
 bool PTU::initialized()
 {
-  return !!ser_ && ser_->isOpen() && initialized_;
+  return connected_ && initialized_;
 }
 
 bool PTU::disableLimits()
@@ -77,10 +82,12 @@ bool PTU::disableLimits()
 
 bool PTU::initialize()
 {
-  ser_->write("ft ");  // terse feedback
-  ser_->write("ed ");  // disable echo
-  ser_->write("ci ");  // position mode
-  ser_->read(20);
+  ptuWrite("ft ");  // terse feedback
+  if (connection_type_ == tcp)ptuRead(20); // tcp produces more output (* \r\n) than tty
+  ptuWrite("ed ");  // disable echo
+  if (connection_type_ == tcp)ptuRead(20);
+  ptuWrite("ci ");  // position mode
+  ptuRead(20); // read and discard response to above commands
 
   // get pan tilt encoder res
   tr = getRes(PTU_TILT);
@@ -108,12 +115,118 @@ bool PTU::initialize()
   return initialized();
 }
 
+bool PTU::connectTCP(std::string ip_addr, int32_t tcp_port) // for tcp connection
+{
+  if (!tcpClient_) {
+    tcpClient_ = new TcpClient();
+  }
+  tcpClient_->conn(ip_addr, tcp_port);
+  tcpClient_->setTimeout(2, 0); //set read timeout to X second
+  connected_ = true;
+
+  // for the TCP connection, the FLIR returns several lines of bannerish junk, about 120 chars
+  // we need to read this or it will cause trouble later parsing other cmd output
+  sleep(2); // maybe need to sleep before ptu sends banner
+  ROS_INFO_STREAM("PTU::connectTCP: banner:");
+  for (int i=0; i<10; i++)
+  {
+    std::string s = "";
+    int len;
+    len = ptuReadline(s);
+    if(len > 1)ROS_INFO_STREAM("rcv len " << len << " " << s.c_str());
+    if (s.find( "Initializing...") != std::string::npos)return true; // the end of the banner
+  }
+
+  return true;
+}
+
+bool PTU::connectTTY(std::string port, int32_t baud) // for tty connection
+{
+  if (!ser_) {
+    ser_ = new serial::Serial();
+  }
+  ser_->setBaudrate(baud);
+  //serial::Timeout to = serial::Timeout(200, 200, 0, 200, 0);
+  // prevent lexical_cast error when tty slow. A better fix is to permit timeouts but deal with empty responseBuffer
+  serial::Timeout to = serial::Timeout(4000, 4000, 0, 200, 0);
+  ser_->setPort(port);
+  ser_->setTimeout(to);
+  ser_->open();
+  connected_ = true;
+  return true;
+}
+
+void PTU::ptuWrite(std::string command){
+  if (connection_type_ == tty)
+    ser_->write(command);
+  else
+    tcpClient_->send_data(command);
+}
+
+std::string PTU::ptuRead (size_t size) // default size=1
+{
+  std::string result;
+  if (connection_type_ == tty)
+    result = ser_->read(size);
+  else
+    result = tcpClient_->receive(size);
+  return result;
+}
+
+size_t  PTU::ptuRead (std::string &buffer, size_t size)
+{
+  if (connection_type_ == tty)
+  {
+      ser_->flush();
+  }
+  return 0;
+}
+
+size_t PTU::ptuReadline(std::string &buffer, size_t size, std::string eol)
+{
+  size_t len = 0;
+  // readline (std::string &buffer, size_t size = 65536, std::string eol = "\n");
+  if (connection_type_ == tty)
+  {
+    len = ser_->readline(buffer, PTU_BUFFER_LEN, "\n");
+  }
+  else
+  {
+    //buffer = tcpClient_->receive(size);
+    //len = buffer.length();
+    len = tcpClient_->readline(buffer, PTU_BUFFER_LEN, "\n");
+  }
+  return len;
+}
+
+void PTU::ptuFlush()
+{
+  if (connection_type_ == tty)
+  {
+      ser_->flush();
+  }
+}
+
+size_t PTU::available () /* Return the number of characters in the buffer. */
+{
+  size_t len;
+  if (connection_type_ == tty)
+    len = ser_->available();
+  else {
+    ioctl(tcpClient_->mysock, FIONREAD, &len);
+  }
+  return len;
+}
+
+
 std::string PTU::sendCommand(std::string command)
 {
-  ser_->write(command);
+  std::string buffer;
+  ptuWrite(command);
   ROS_DEBUG_STREAM("TX: " << command);
-  std::string buffer = ser_->readline(PTU_BUFFER_LEN);
+  int length  = ptuReadline(buffer, PTU_BUFFER_LEN, "\n");
   ROS_DEBUG_STREAM("RX: " << buffer);
+  //ROS_INFO_STREAM("[PTU::sendCommand] TX: " << command << " RX (length=" << length << ") ["  << buffer << "]");
   return buffer;
 }
 
@@ -122,8 +235,8 @@ bool PTU::home()
   ROS_INFO("Sending command to reset PTU.");
 
   // Issue reset command
-  ser_->flush();
-  ser_->write(" r ");
+  ptuFlush();
+  ptuWrite(" r ");
 
   std::string actual_response, expected_response("!T!T!P!P*");
 
@@ -132,10 +245,10 @@ bool PTU::home()
   {
     usleep(100000);
 
-    if (ser_->available() >= expected_response.length())
+    if (available() >= expected_response.length())
     {
       ROS_INFO("PTU reset command response received.");
-      ser_->read(actual_response, expected_response.length());
+      ptuRead(actual_response, expected_response.length());
       return (actual_response == expected_response);
     }
   }
@@ -147,7 +260,7 @@ bool PTU::home()
 // get radians/count resolution
 float PTU::getRes(char type)
 {
-  if (!ser_ || !ser_->isOpen()) return -1;
+  if (! connected_ == true)return -1;
 
   std::string buffer = sendCommand(std::string() + type + "r ");
 
@@ -165,7 +278,7 @@ float PTU::getRes(char type)
 // get position limit
 int PTU::getLimit(char type, char limType)
 {
-  if (!ser_ || !ser_->isOpen()) return -1;
+  if (! connected_ == true)return -1;
 
   std::string buffer = sendCommand(std::string() + type + limType + " ");
 
