@@ -74,8 +74,8 @@ bool PTU::initialized()
 
 bool PTU::disableLimits()
 {
-  ser_->write("ld ");  // Disable Limits
-  ser_->read(20);
+  ptuWrite("ld ");  // Disable Limits
+  ptuRead(20);
   Lim = false;
   return true;
 }
