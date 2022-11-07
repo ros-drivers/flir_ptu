@@ -77,10 +77,10 @@ class PtuSimulationNode:
             rospy.logwarn(f'Requested pan of {pan} is too large. Clipping to {self.MAZ_PAN}')
             pan = self.MAX_PAN
 
-        if tilt < self.MIN_PAN:
+        if tilt < self.MIN_TILT:
             rospy.logwarn(f'Requested tilt of {tilt} is too small. Clipping to {self.MIN_TILT}')
             tilt = self.MIN_TILT
-        elif pan > self.MAX_TILT:
+        elif tilt > self.MAX_TILT:
             rospy.logwarn(f'Requested tilt of {tilt} is too large. Clipping to {self.MAX_TILT}')
             tilt = self.MAX_TILT
 
