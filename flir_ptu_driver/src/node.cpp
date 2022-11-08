@@ -285,7 +285,7 @@ void Node::testPanTilt(void)
      count = static_cast<int>(radian / m_pantilt->getResolution(pt));
      ROS_INFO_STREAM("NODE::testPanTilt] PTU set tilt " << pt << count);
   }
-} 
+}
 
 
 /**
@@ -296,29 +296,23 @@ void Node::spinCallback(const ros::TimerEvent&)
 {
   if (!ok()) return;
 
-  // Read Position & Speed
+  // Read Position
   double pan  = m_pantilt->getPosition(PTU_PAN);
   double tilt = m_pantilt->getPosition(PTU_TILT);
 
-  double panspeed  = m_pantilt->getSpeed(PTU_PAN);
-  double tiltspeed = m_pantilt->getSpeed(PTU_TILT);
-
-  // Publish Position & Speed
+  // Publish Position
   sensor_msgs::JointState joint_state;
   joint_state.header.stamp = ros::Time::now();
   joint_state.name.resize(2);
   joint_state.position.resize(2);
-  joint_state.velocity.resize(2);
   joint_state.name[0] = m_joint_name_prefix + "pan";
   joint_state.position[0] = pan;
-  joint_state.velocity[0] = panspeed;
   joint_state.name[1] = m_joint_name_prefix + "tilt";
   joint_state.position[1] = tilt;
-  joint_state.velocity[1] = tiltspeed;
   m_joint_pub.publish(joint_state);
 
   m_updater->update();
-  
+
   if(m_test_mode)testPanTilt();
 }
 
