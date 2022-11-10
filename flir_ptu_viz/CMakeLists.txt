@@ -4,10 +4,8 @@ project(flir_ptu_viz)
 find_package(catkin REQUIRED COMPONENTS roslaunch)
 catkin_package()
 
-roslaunch_add_file_check(launch/view_model.launch
-  DEPENDENCIES flir_ptu_example_urdf robot_state_publisher)
-roslaunch_add_file_check(launch/view_ptu.launch
-  DEPENDENCIES rviz)
+roslaunch_add_file_check(launch/view_model.launch)
+roslaunch_add_file_check(launch/view_ptu.launch)
 
 install(DIRECTORY launch rviz
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})

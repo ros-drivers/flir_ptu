@@ -1,0 +1,31 @@
+<launch>
+  <arg name="name"           default="ptu" />
+
+  <rosparam subst_value="true">
+    $(arg name):
+      $(arg name)_pan_position_controller:
+        type: "velocity_controllers/JointPositionController"
+        joint: "$(arg name)_pan"
+        pid:
+          p: 1.0
+          i: 0.01
+          d: 0.1
+
+      $(arg name)_tilt_position_controller:
+        type: "velocity_controllers/JointPositionController"
+        joint: "$(arg name)_tilt"
+        pid:
+          p: 1.0
+          i: 0.01
+          d: 0.1
+  </rosparam>
+  <node name="$(anon ptu_controller_spawner)" pkg="controller_manager" type="spawner"
+        args="$(arg name)/$(arg name)_pan_position_controller $(arg name)/$(arg name)_tilt_position_controller"/>
+
+  <group ns="$(arg name)">
+    <node name="$(arg name)_ptusim_driver" pkg="flir_ptu_driver" type="ptu_simulation_node" output="screen">
+      <param name="name"  value="$(arg name)" />
+      <remap from="state" to="/joint_states" />
+    </node>
+  </group>
+</launch>

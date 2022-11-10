@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+"""
+A node that communicates directly with the velocity_controllers/JointPositionController controllers
+provided by d46.urdf.xacro to control the position of the pan and tilt actuators.
+
+This provides a loose approximation of the Flir PTU driver, but with some limitations:
+- the position is controlled through a PID controller, so some oscillation may occur
+- the velocity of the rotation is not affected by the velocity sent to the cmd topic
+
+Externally this node should behave with the same set of ROS topics and services you would expect
+to see on the ptu_node running on real hardware:
+
+Publications:
+- ${name}_pan_position_controller/command (std_msgs/Float64) -- used to command the underlying PID controller
+- ${name}_tilt_position_controller/command (std_msgs/Float64) -- see above
+
+Normally the ptu_node publishes to /state, but this is normally remapped to /joint_states.  In this
+case the underlying JointPositionController instances publish to /joint_states for us, so there's no
+additional work needed for this node
+
+Subscriptions:
+- cmd (sensor_msgs/JointState) -- the desired pan and tilt position for the unit
+- reset (std_msgs/Bool) -- reset the unit to its default position (0, 0)
+"""
+
+import rospy
+
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Bool, Float64
+
+## The simulation node itself
+#
+#  This class provides the same external ROS interfaces as the flir_ptu_driver/ptu_node, but instead of
+#  interacting with the underlying hardware it instead interacts with two velocity_controllers/JointPositionController
+#  controllers to move the pan and tilt servos
+#
+#  See flir_ptu_description/urdf/d46.urdf.xacro for angle limits reproduced below
+class PtuSimulationNode:
+    ## Minumum reachable pan angle (rad)
+    MIN_PAN = -2.775
+
+    ## Maximum reachable pan angle (rad)
+    MAX_PAN = 2.775
+
+    ## Minimum reachable tilt angle (rad)
+    MIN_TILT = -0.82
+
+    ## Maximum reachable tilt angle (rad)
+    MAX_TILT = 0.52
+
+    def __init__(self):
+        self.name = rospy.get_param('~name', 'ptu')
+
+    ## Connect the publishers and subscribers
+    def start(self):
+        self.cmd_sub = rospy.Subscriber('cmd', JointState, self.cmd_callback)
+        self.reset_sub = rospy.Subscriber('reset', Bool, self.reset_callback)
+
+        self.pan_cmd = rospy.Publisher(f'{self.name}_pan_position_controller/command', Float64, queue_size=1)
+        self.tilt_cmd = rospy.Publisher(f'{self.name}_tilt_position_controller/command', Float64, queue_size=1)
+
+    ## Move the PTU to the desired position, respecting the limits
+    #
+    #  \param  desired_state  The desired pan/tilt position. Index 0 is the pan angle, index 1 is the tilt angle
+    def cmd_callback(self, desired_state):
+        if len(desired_state.position) != 2:
+            rospy.logwarn(f'Wrong number of positions: {len(desired_state.position)}. Expected 2. Dropping request')
+            return
+
+        pan = desired_state.position[0]
+        tilt = desired_state.position[1]
+
+        if pan < self.MIN_PAN:
+            rospy.logwarn(f'Requested pan of {pan} is too small. Clipping to {self.MIN_PAN}')
+            pan = self.MIN_PAN
+        elif pan > self.MAX_PAN:
+            rospy.logwarn(f'Requested pan of {pan} is too large. Clipping to {self.MAX_PAN}')
+            pan = self.MAX_PAN
+
+        if tilt < self.MIN_TILT:
+            rospy.logwarn(f'Requested tilt of {tilt} is too small. Clipping to {self.MIN_TILT}')
+            tilt = self.MIN_TILT
+        elif tilt > self.MAX_TILT:
+            rospy.logwarn(f'Requested tilt of {tilt} is too large. Clipping to {self.MAX_TILT}')
+            tilt = self.MAX_TILT
+
+        self.pan_cmd.publish(Float64(pan))
+        self.tilt_cmd.publish(Float64(tilt))
+
+
+    def reset_callback(self, cmd):
+        if cmd.data:
+            self.pan_cmd.publish(Float64(0.0))
+            self.tilt_cmd.publish(Float64(0.0))
+
+## Create the node and run it
+def main():
+    rospy.init_node('ptu_simulation_node', anonymous=True)
+    node = PtuSimulationNode()
+    node.start()
+    rospy.spin()
+
+if __name__=='__main__':
+    main()
