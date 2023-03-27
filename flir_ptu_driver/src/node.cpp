@@ -74,10 +74,10 @@ protected:
 
   std::string m_joint_name_prefix;
   double default_velocity_;
-  ConnectType m_connection_type; // connection is either tty or tcp
+  ConnectType m_connection_type;  // connection is either tty or tcp
 
 private:
-  bool m_test_mode; // if true send pan and tilt commands periodically
+  bool m_test_mode;  // if true send pan and tilt commands periodically
   void testPanTilt(void);
 };
 
@@ -91,7 +91,7 @@ Node::Node(ros::NodeHandle& node_handle)
 
   ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
   ros::param::param<bool>("/ptu/ptu_driver/test_pan_tilt_mode", m_test_mode, false);
-  ROS_INFO_STREAM("FLIR PTU - test mode is ----- " << (m_test_mode ? "ON" : "OFF" ) << " -----");
+  ROS_INFO_STREAM("FLIR PTU - test mode is ----- " << (m_test_mode ? "ON" : "OFF") << " -----");
 }
 
 Node::~Node()
@@ -128,20 +128,23 @@ void Node::connect()
 
   ros::param::param<std::string>("~connection_type", connection_type_string, PTU_DEFAULT_CONNECTION);
 
-  if (!strcmp("tcp", connection_type_string.c_str())) {
+  if (!strcmp("tcp", connection_type_string.c_str()))
+  {
     m_connection_type = tcp;
     ros::param::param<std::string>("~ip_addr", ip_addr, PTU_DEFAULT_TCP_IP);
     ros::param::param<int32_t>("~tcp_port", tcp_port, PTU_DEFAULT_TCP_PORT);
     ss << connection_type_string << ":" << ip_addr << ":" << tcp_port;
   }
-  else if (!strcmp("tty", connection_type_string.c_str())) {
+  else if (!strcmp("tty", connection_type_string.c_str()))
+  {
     m_connection_type = tty;
     // Query for serial configuration
     ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
     ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
     ss << connection_type_string << ":" << port << ":" << baud;
   }
-  else {
+  else
+  {
     ROS_ERROR_STREAM("Unknown connection type (tty or tcp): " << connection_type_string);
     return;
   }
@@ -152,10 +155,12 @@ void Node::connect()
 
   try
   {
-    if (m_connection_type == tty) {
+    if (m_connection_type == tty)
+    {
       m_pantilt->connectTTY(port, baud);
     }
-    else if (m_connection_type == tcp) {
+    else if (m_connection_type == tcp)
+    {
       m_pantilt->connectTCP(ip_addr, tcp_port);
     }
   }
@@ -271,16 +276,18 @@ void Node::testPanTilt(void)
   float radian;
   int count;
   char pt;
-  if((++loopCnt % 200) == 75) {
+  if ((++loopCnt % 200) == 75)
+  {
     pt = 'p';
-    radian = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) / 2.0;
+    radian = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) / 2.0;  // runtime/threadsafe_fn
     m_pantilt->setPosition(pt, radian);
     count = static_cast<int>(radian / m_pantilt->getResolution(pt));
     ROS_INFO_STREAM("NODE::testPanTilt] PTU set pan " << pt << count);
   }
-  else if((loopCnt % 200) == 175) {
+  else if ((loopCnt % 200) == 175)
+  {
      pt = 't';
-     radian = -1.0 * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
+     radian = -1.0 * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);  // runtime/threadsafe_fn
      m_pantilt->setPosition(pt, -radian / 4.0);
      count = static_cast<int>(radian / m_pantilt->getResolution(pt));
      ROS_INFO_STREAM("NODE::testPanTilt] PTU set tilt " << pt << count);
@@ -313,7 +320,7 @@ void Node::spinCallback(const ros::TimerEvent&)
 
   m_updater->update();
 
-  if(m_test_mode)testPanTilt();
+  if (m_test_mode)testPanTilt();
 }
 
 }  // namespace flir_ptu_driver

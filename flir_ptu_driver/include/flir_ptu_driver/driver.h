@@ -67,7 +67,7 @@ class Serial;
 
 namespace flir_ptu_driver
 {
-enum ConnectType { tty, tcp }; // connection is either tty or tcp (later maybe add udp)
+enum ConnectType { tty, tcp };  // connection is either tty or tcp (later maybe add udp)
 
 class PTU
 {
@@ -89,14 +89,14 @@ public:
   /** \return true if the serial port is open and PTU initialized. */
   bool initialized();
 
-  bool connectTTY(std::string port, int32_t baud); // for tty connection
-  bool connectTCP(std::string ip_addr, int32_t tcp_port); // for tcp connection
-  void ptuWrite(std::string command); // to tty or tcp as required
+  bool connectTTY(std::string port, int32_t baud);  // for tty connection
+  bool connectTCP(std::string ip_addr, int32_t tcp_port);  // for tcp connection
+  void ptuWrite(std::string command);  // to tty or tcp as required
   size_t ptuReadline(std::string &buffer, size_t size = 65536, std::string eol = "\n");
-  std::string ptuRead (size_t size = 1);
-  size_t  ptuRead (std::string &buffer, size_t size = 1);
-  void ptuFlush(); // flush, if a tty
-  size_t available (); /*! Return the number of characters in the buffer. */
+  std::string ptuRead(size_t size = 1);
+  size_t  ptuRead(std::string &buffer, size_t size = 1);
+  void ptuFlush();  // flush, if a tty
+  size_t available(); /*! Return the number of characters in the buffer. */
 
   /**
    * \param type 'p' or 't'
