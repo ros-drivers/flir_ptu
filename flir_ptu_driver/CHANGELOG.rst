@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.2 (2023-03-27)
+------------------
 * Linting
 * Merge pull request `#50 <https://github.com/ros-drivers/flir_ptu/issues/50>`_ from ros-drivers/wip-simulation
   Add Gazebo Support
