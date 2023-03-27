@@ -2,6 +2,14 @@
 Changelog for package flir_ptu_viz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Merge pull request `#50 <https://github.com/ros-drivers/flir_ptu/issues/50>`_ from ros-drivers/wip-simulation
+  Add Gazebo Support
+* Re-add the _viz package's launch tests
+* Use a pair of JointPositionControllers to provide gazebo simulation support for the PTU
+* Contributors: Chris Iverach-Brereton, Tony Baltovski
+
 0.2.1 (2021-03-26)
 ------------------
 
