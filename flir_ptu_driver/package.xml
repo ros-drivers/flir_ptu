@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>flir_ptu_driver</name>
-  <version>0.2.2</version>
+  <version>0.2.3</version>
   <description>Driver for the FLIR pan/tilt units.</description>
 
   <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>

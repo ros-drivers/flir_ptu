@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package> 
   <name>flir_ptu_description</name>
-  <version>0.2.2</version>
+  <version>0.2.3</version>
   <description>URDF description the FLIR PTUs, currently the D46.</description>
 
   <maintainer email="dash@clearpathrobotics.com">Devon Ash</maintainer>
