@@ -2,6 +2,11 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Expose joint_name_prefix as an arg in the launch file.  This makes it easier to add multiple PTUs.
+* Contributors: Chris Iverach-Brereton
+
 0.2.2 (2023-03-27)
 ------------------
 * Linting
