@@ -2,7 +2,8 @@
   <arg name="port"           default="/dev/ptu" /> <!-- Suggest using Udev rules to make a consistent serial port -->
   <arg name="limits_enabled" default="false" />    <!-- Disable software range limits by setting to false -->
   <arg name="stand_alone"    default="false" />    <!-- Set to true to load description & start state publisher -->
-  <arg name="connection_type" default="tty" /> <!-- either tcp (uses ip_addr and tcp_port) or tty (uses tty port) -->
+  <arg name="connection_type" default="tty" />     <!-- either tcp (uses ip_addr and tcp_port) or tty (uses tty port) -->
+  <arg name="joint_name_prefix" default="ptu_" />  <!-- Set to change the prefix of the joints, useful if you have multiple PTUs -->
   <arg name="ip_addr" default="192.168.131.70" />
   <arg name="tcp_port" default="4000" />
 
@@ -18,10 +19,11 @@
     <param name="limits_enabled" value="$(arg limits_enabled)" />
     <param name="test_pan_tilt_mode" type="bool" value="false"/>  <!-- test mode sends random pan/tilt every few secs -->
     <param name="connection_type" type="str" value="$(arg connection_type)" />
+    <param name="joint_name_prefix" value="$(arg joint_name_prefix)" />
     <param name="port" value="$(arg port)" />                     <!-- tty port, like "/dev/ttyUSB0" -->
     <param name="ip_addr" type="str" value="$(arg ip_addr)" />
     <param name="tcp_port" type="int" value="$(arg tcp_port)" />
-
+    
     <remap from="state" to="/joint_states" />
   </node>
 </launch>
