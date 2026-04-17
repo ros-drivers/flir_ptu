@@ -7,13 +7,13 @@
 
   <maintainer email="tbaltovski@clearpathrobotics.com">Tony Baltovski</maintainer>
 
+  <license>GPL-2.0-or-later</license>
+
   <url type="repository">https://github.com/ros-drivers/flir_ptu</url>
   <url type="bugtracker">https://github.com/ros-drivers/flir_ptu/issues</url>
 
   <author email="mpurvis@clearpathrobotics.com">Mike Purvis</author>
   <author email="erik@cse.wustl.edu">Erik Karulf</author>
-
-  <license>GPL-2.0-or-later</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -26,6 +26,7 @@
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_clang_format</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

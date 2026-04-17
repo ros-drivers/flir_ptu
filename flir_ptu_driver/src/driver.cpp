@@ -42,7 +42,7 @@ namespace flir_ptu_driver
 /** Templated wrapper function to assist with extracting
  * values from response strings.
  */
-template<typename T>
+template <typename T>
 T parseResponse(const std::string & responseBuffer)
 {
   T parsed = T();
@@ -75,16 +75,14 @@ T parseResponse(const std::string & responseBuffer)
   }
   catch (const std::exception & e)
   {
-    std::cerr << "[flir_ptu_driver] Unable to parse '" << responseBuffer << "': " << e.what() << std::endl;
+    std::cerr << "[flir_ptu_driver] Unable to parse '" << responseBuffer << "': " << e.what()
+              << std::endl;
   }
 
   return parsed;
 }
 
-bool PTU::initialized()
-{
-  return transport_ && transport_->isOpen() && initialized_;
-}
+bool PTU::initialized() { return transport_ && transport_->isOpen() && initialized_; }
 
 bool PTU::disableLimits()
 {
@@ -158,18 +156,22 @@ bool PTU::home()
     {
       std::cout << "[flir_ptu_driver] PTU reset command response received." << std::endl;
       actual_response = transport_->read(expected_response.length());
-      return (actual_response == expected_response);
+      return actual_response == expected_response;
     }
   }
 
-  std::cerr << "[flir_ptu_driver] PTU reset command response not received before timeout." << std::endl;
+  std::cerr << "[flir_ptu_driver] PTU reset command response not received before timeout."
+            << std::endl;
   return false;
 }
 
 // get radians/count resolution
 float PTU::getRes(char type)
 {
-  if (!transport_ || !transport_->isOpen()) return -1;
+  if (!transport_ || !transport_->isOpen())
+  {
+    return -1;
+  }
 
   std::string buffer = sendCommand(std::string() + type + "r ");
 
@@ -180,14 +182,17 @@ float PTU::getRes(char type)
   }
 
   double z = parseResponse<double>(buffer);
-  z = z / 3600;  // degrees/count
+  z = z / 3600;           // degrees/count
   return z * M_PI / 180;  // radians/count
 }
 
 // get position limit
 int PTU::getLimit(char type, char limType)
 {
-  if (!transport_ || !transport_->isOpen()) return -1;
+  if (!transport_ || !transport_->isOpen())
+  {
+    return -1;
+  }
 
   std::string buffer = sendCommand(std::string() + type + limType + " ");
 
@@ -200,11 +205,13 @@ int PTU::getLimit(char type, char limType)
   return parseResponse<int>(buffer);
 }
 
-
 // get firmware/version banner
 std::string PTU::getVersion()
 {
-  if (!transport_ || !transport_->isOpen()) return std::string();
+  if (!transport_ || !transport_->isOpen())
+  {
+    return std::string();
+  }
 
   std::string buffer = sendCommand("v ");
 
@@ -217,14 +224,20 @@ std::string PTU::getVersion()
   std::string trimmed = buffer.substr(1);
   auto start = trimmed.find_first_not_of(" \t\r\n");
   auto end = trimmed.find_last_not_of(" \t\r\n");
-  if (start == std::string::npos) return std::string();
+  if (start == std::string::npos)
+  {
+    return std::string();
+  }
   return trimmed.substr(start, end - start + 1);
 }
 
 // get position in radians
 float PTU::getPosition(char type)
 {
-  if (!initialized()) return -1;
+  if (!initialized())
+  {
+    return -1;
+  }
 
   std::string buffer = sendCommand(std::string() + type + "p ");
 
@@ -237,11 +250,13 @@ float PTU::getPosition(char type)
   return parseResponse<double>(buffer) * getResolution(type);
 }
 
-
 // set position in radians
 bool PTU::setPosition(char type, float pos, bool block)
 {
-  if (!initialized()) return false;
+  if (!initialized())
+  {
+    return false;
+  }
 
   // get raw encoder count to move
   int count = static_cast<int>(pos / getResolution(type));
@@ -251,16 +266,14 @@ bool PTU::setPosition(char type, float pos, bool block)
   {
     if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax))
     {
-      std::cerr << "[flir_ptu_driver] Pan Tilt Value out of Range: " << type
-                << " " << pos << "(" << count << ") ("
-                << (type == PTU_TILT ? TMin : PMin) << "-"
+      std::cerr << "[flir_ptu_driver] Pan Tilt Value out of Range: " << type << " " << pos << "("
+                << count << ") (" << (type == PTU_TILT ? TMin : PMin) << "-"
                 << (type == PTU_TILT ? TMax : PMax) << ")" << std::endl;
       return false;
     }
   }
 
-  std::string buffer = sendCommand(std::string() + type + "p" +
-                                   std::to_string(count) + " ");
+  std::string buffer = sendCommand(std::string() + type + "p" + std::to_string(count) + " ");
 
   if (buffer.empty() || buffer[0] != '*')
   {
@@ -282,7 +295,10 @@ bool PTU::setPosition(char type, float pos, bool block)
 // get speed in radians/sec
 float PTU::getSpeed(char type)
 {
-  if (!initialized()) return -1;
+  if (!initialized())
+  {
+    return -1;
+  }
 
   std::string buffer = sendCommand(std::string() + type + "s ");
 
@@ -295,28 +311,29 @@ float PTU::getSpeed(char type)
   return parseResponse<double>(buffer) * getResolution(type);
 }
 
-
-
 // set speed in radians/sec
 bool PTU::setSpeed(char type, float pos)
 {
-  if (!initialized()) return false;
+  if (!initialized())
+  {
+    return false;
+  }
 
   // get raw encoder speed to move
   int count = static_cast<int>(pos / getResolution(type));
 
   // Check limits
-  if (abs(count) < (type == PTU_TILT ? TSMin : PSMin) || abs(count) > (type == PTU_TILT ? TSMax : PSMax))
+  if (
+    abs(count) < (type == PTU_TILT ? TSMin : PSMin) ||
+    abs(count) > (type == PTU_TILT ? TSMax : PSMax))
   {
-    std::cerr << "[flir_ptu_driver] Pan Tilt Speed Value out of Range: " << type
-              << " " << pos << "(" << count << ") ("
-              << (type == PTU_TILT ? TSMin : PSMin) << "-"
+    std::cerr << "[flir_ptu_driver] Pan Tilt Speed Value out of Range: " << type << " " << pos
+              << "(" << count << ") (" << (type == PTU_TILT ? TSMin : PSMin) << "-"
               << (type == PTU_TILT ? TSMax : PSMax) << ")" << std::endl;
     return false;
   }
 
-  std::string buffer = sendCommand(std::string() + type + "s" +
-                                   std::to_string(count) + " ");
+  std::string buffer = sendCommand(std::string() + type + "s" + std::to_string(count) + " ");
 
   if (buffer.empty() || buffer[0] != '*')
   {
@@ -327,11 +344,13 @@ bool PTU::setSpeed(char type, float pos)
   return true;
 }
 
-
 // set movement mode (position/velocity)
 bool PTU::setMode(char type)
 {
-  if (!initialized()) return false;
+  if (!initialized())
+  {
+    return false;
+  }
 
   std::string buffer = sendCommand(std::string("c") + type + " ");
 
@@ -347,7 +366,10 @@ bool PTU::setMode(char type)
 // get ptu mode
 char PTU::getMode()
 {
-  if (!initialized()) return -1;
+  if (!initialized())
+  {
+    return -1;
+  }
 
   std::string buffer = sendCommand("c ");
 
@@ -358,11 +380,17 @@ char PTU::getMode()
   }
 
   if (buffer[2] == 'p' || buffer[2] == 'P')
+  {
     return PTU_VELOCITY;
+  }
   else if (buffer[2] == 'i' || buffer[2] == 'I')
+  {
     return PTU_POSITION;
+  }
   else
+  {
     return -1;
+  }
 }
 
 }  // namespace flir_ptu_driver

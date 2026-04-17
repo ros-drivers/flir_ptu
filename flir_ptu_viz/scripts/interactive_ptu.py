@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Interactive-marker teleop for the FLIR PTU.
+"""
+Interactive-marker teleop for the FLIR PTU.
 
 Publishes ``sensor_msgs/JointState`` on ``joint_states`` so that
 ``robot_state_publisher`` reflects the commanded pose in RViz. When
@@ -9,11 +10,10 @@ as expected by ``flir_ptu_driver`` for live hardware control.
 
 import math
 
-import rclpy
-from rclpy.node import Node
-
 from geometry_msgs.msg import Quaternion
 from interactive_markers import InteractiveMarkerServer
+import rclpy
+from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from visualization_msgs.msg import (
     InteractiveMarker,

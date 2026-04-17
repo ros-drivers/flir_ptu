@@ -33,8 +33,8 @@
 
 #include <flir_ptu_driver/transport.h>
 
-#include <string>
 #include <termios.h>
+#include <string>
 
 namespace flir_ptu_driver
 {
@@ -100,10 +100,10 @@ public:
   void flush() override;
 
 private:
-  std::string port_;          ///< Path to the serial device.
-  int baud_;                  ///< Configured symbol rate (bits/s).
-  int fd_;                    ///< File descriptor for the open device; -1 when closed.
-  struct termios old_tio_;    ///< Termios state captured on open() and restored on close().
+  std::string port_;        ///< Path to the serial device.
+  int baud_;                ///< Configured symbol rate (bits/s).
+  int fd_;                  ///< File descriptor for the open device; -1 when closed.
+  struct termios old_tio_;  ///< Termios state captured on open() and restored on close().
 
   /// Translate a numeric baud rate to the matching termios @c speed_t constant.
   speed_t baudToSpeed(int baud) const;

@@ -56,8 +56,13 @@ install(DIRECTORY launch config
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_clang_format REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
+  set(ament_cmake_cpplint_FOUND TRUE)
+  set(ament_cmake_uncrustify_FOUND TRUE)
+  list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_clang_format)
   ament_lint_auto_find_test_dependencies()
+  ament_clang_format(CONFIG_FILE ${CMAKE_CURRENT_SOURCE_DIR}/../.clang-format)
 endif()
 
 ament_package()

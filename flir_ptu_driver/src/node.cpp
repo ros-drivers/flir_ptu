@@ -28,17 +28,17 @@
  *
  */
 
-#include <diagnostic_updater/diagnostic_updater.hpp>
-#include <diagnostic_updater/publisher.hpp>
+#include <memory>
+#include <string>
+
 #include <flir_ptu_driver/driver.h>
 #include <flir_ptu_driver/serial_transport.h>
 #include <flir_ptu_driver/tcp_transport.h>
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <std_msgs/msg/empty.hpp>
-
-#include <memory>
-#include <string>
 
 namespace flir_ptu_driver
 {
@@ -46,8 +46,7 @@ namespace flir_ptu_driver
 class PtuNode : public rclcpp::Node
 {
 public:
-  PtuNode()
-  : rclcpp::Node("ptu_driver"), m_pantilt(nullptr)
+  PtuNode() : rclcpp::Node("ptu_driver"), m_pantilt(nullptr)
   {
     // Declare parameters
     this->declare_parameter<std::string>("connection_type", "tcp");
@@ -86,8 +85,9 @@ public:
       std::string ip_addr = this->get_parameter("ip_addr").as_string();
       int tcp_port = this->get_parameter("tcp_port").as_int();
 
-      RCLCPP_INFO(this->get_logger(),
-        "Attempting to connect to FLIR PTU via TCP on %s:%d", ip_addr.c_str(), tcp_port);
+      RCLCPP_INFO(
+        this->get_logger(), "Attempting to connect to FLIR PTU via TCP on %s:%d", ip_addr.c_str(),
+        tcp_port);
 
       auto tcp = std::make_unique<TcpTransport>(ip_addr, tcp_port);
       if (!tcp->open())
@@ -108,8 +108,9 @@ public:
       std::string port = this->get_parameter("port").as_string();
       int baud = this->get_parameter("baud").as_int();
 
-      RCLCPP_INFO(this->get_logger(),
-        "Attempting to connect to FLIR PTU via serial on %s at %d baud", port.c_str(), baud);
+      RCLCPP_INFO(
+        this->get_logger(), "Attempting to connect to FLIR PTU via serial on %s at %d baud",
+        port.c_str(), baud);
 
       auto serial = std::make_unique<SerialTransport>(port, baud);
       if (!serial->open())
@@ -124,7 +125,8 @@ public:
     }
     else
     {
-      RCLCPP_ERROR(this->get_logger(), "Unknown connection_type: '%s' (use 'tty' or 'tcp')",
+      RCLCPP_ERROR(
+        this->get_logger(), "Unknown connection_type: '%s' (use 'tty' or 'tcp')",
         connection_type.c_str());
       return;
     }
@@ -162,12 +164,14 @@ public:
     RCLCPP_INFO(this->get_logger(), "FLIR PTU initialized.");
 
     // Log limits
-    RCLCPP_INFO(this->get_logger(), "Pan range: [%.4f, %.4f] rad, speed: [%.4f, %.4f] rad/s",
-      m_pantilt->getMin(PTU_PAN), m_pantilt->getMax(PTU_PAN),
-      m_pantilt->getMinSpeed(PTU_PAN), m_pantilt->getMaxSpeed(PTU_PAN));
-    RCLCPP_INFO(this->get_logger(), "Tilt range: [%.4f, %.4f] rad, speed: [%.4f, %.4f] rad/s",
-      m_pantilt->getMin(PTU_TILT), m_pantilt->getMax(PTU_TILT),
-      m_pantilt->getMinSpeed(PTU_TILT), m_pantilt->getMaxSpeed(PTU_TILT));
+    RCLCPP_INFO(
+      this->get_logger(), "Pan range: [%.4f, %.4f] rad, speed: [%.4f, %.4f] rad/s",
+      m_pantilt->getMin(PTU_PAN), m_pantilt->getMax(PTU_PAN), m_pantilt->getMinSpeed(PTU_PAN),
+      m_pantilt->getMaxSpeed(PTU_PAN));
+    RCLCPP_INFO(
+      this->get_logger(), "Tilt range: [%.4f, %.4f] rad, speed: [%.4f, %.4f] rad/s",
+      m_pantilt->getMin(PTU_TILT), m_pantilt->getMax(PTU_TILT), m_pantilt->getMinSpeed(PTU_TILT),
+      m_pantilt->getMaxSpeed(PTU_TILT));
 
     // Publishers
     m_joint_pub = this->create_publisher<sensor_msgs::msg::JointState>("state", 1);
@@ -189,14 +193,10 @@ public:
 
     // Timer
     m_timer = this->create_wall_timer(
-      std::chrono::milliseconds(1000 / hz),
-      std::bind(&PtuNode::spinCallback, this));
+      std::chrono::milliseconds(1000 / hz), std::bind(&PtuNode::spinCallback, this));
   }
 
-  bool ok() const
-  {
-    return m_pantilt != nullptr;
-  }
+  bool ok() const { return m_pantilt != nullptr; }
 
   void disconnect()
   {
@@ -212,12 +212,15 @@ private:
   void cmdCallback(const sensor_msgs::msg::JointState::ConstSharedPtr msg)
   {
     RCLCPP_DEBUG(this->get_logger(), "PTU command callback.");
-    if (!ok()) return;
+    if (!ok())
+    {
+      return;
+    }
 
     if (msg->position.size() != 2)
     {
-      RCLCPP_ERROR(this->get_logger(),
-        "JointState command to PTU has wrong number of position elements.");
+      RCLCPP_ERROR(
+        this->get_logger(), "JointState command to PTU has wrong number of position elements.");
       return;
     }
 
@@ -232,7 +235,8 @@ private:
     }
     else
     {
-      RCLCPP_WARN_ONCE(this->get_logger(),
+      RCLCPP_WARN_ONCE(
+        this->get_logger(),
         "JointState command to PTU has wrong number of velocity elements; using default velocity.");
       panspeed = default_velocity_;
       tiltspeed = default_velocity_;
@@ -263,7 +267,8 @@ private:
 
     if (m_comm_errors > 0)
     {
-      stat.summary(diagnostic_updater::DiagnosticStatusWrapper::WARN,
+      stat.summary(
+        diagnostic_updater::DiagnosticStatusWrapper::WARN,
         "Connected, recent communication errors");
     }
     else
@@ -275,28 +280,35 @@ private:
     stat.add("Endpoint", m_connection_endpoint);
     stat.add("Firmware", m_firmware_version.empty() ? "unknown" : m_firmware_version);
     stat.add("Limits enabled", m_limits_enabled);
-    stat.add("PTU Mode", m_last_mode == PTU_POSITION ? "Position" :
-      (m_last_mode == PTU_VELOCITY ? "Velocity" : "Unknown"));
+    stat.add(
+      "PTU Mode", m_last_mode == PTU_POSITION
+                    ? "Position"
+                    : (m_last_mode == PTU_VELOCITY ? "Velocity" : "Unknown"));
     stat.add("Pan position (rad)", m_last_pan);
     stat.add("Tilt position (rad)", m_last_tilt);
     stat.add("Pan velocity (rad/s)", m_last_pan_speed);
     stat.add("Tilt velocity (rad/s)", m_last_tilt_speed);
-    stat.add("Pan range (rad)", std::to_string(m_pantilt->getMin(PTU_PAN)) + " to " +
-      std::to_string(m_pantilt->getMax(PTU_PAN)));
-    stat.add("Tilt range (rad)", std::to_string(m_pantilt->getMin(PTU_TILT)) + " to " +
-      std::to_string(m_pantilt->getMax(PTU_TILT)));
+    stat.add(
+      "Pan range (rad)", std::to_string(m_pantilt->getMin(PTU_PAN)) + " to " +
+                           std::to_string(m_pantilt->getMax(PTU_PAN)));
+    stat.add(
+      "Tilt range (rad)", std::to_string(m_pantilt->getMin(PTU_TILT)) + " to " +
+                            std::to_string(m_pantilt->getMax(PTU_TILT)));
     stat.add("Communication errors", m_comm_errors);
   }
 
   void spinCallback()
   {
-    if (!ok()) return;
+    if (!ok())
+    {
+      return;
+    }
 
     // Read Position & Speed
-    double pan  = m_pantilt->getPosition(PTU_PAN);
+    double pan = m_pantilt->getPosition(PTU_PAN);
     double tilt = m_pantilt->getPosition(PTU_TILT);
 
-    double panspeed  = m_pantilt->getSpeed(PTU_PAN);
+    double panspeed = m_pantilt->getSpeed(PTU_PAN);
     double tiltspeed = m_pantilt->getSpeed(PTU_TILT);
 
     // Track communication health. getPosition()/getSpeed() return -1 on error.

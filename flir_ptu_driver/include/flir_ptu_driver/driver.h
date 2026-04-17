@@ -30,11 +30,12 @@
 
 #pragma once
 
-#include <flir_ptu_driver/transport.h>
-
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <utility>
+
+#include <flir_ptu_driver/transport.h>
 
 namespace flir_ptu_driver
 {
@@ -124,48 +125,35 @@ public:
    * @param type @c PTU_PAN or @c PTU_TILT.
    * @return Resolution in radians/count.
    */
-  float getResolution(char type)
-  {
-    return (type == PTU_TILT ? tr : pr);
-  }
+  float getResolution(char type) { return type == PTU_TILT ? tr : pr; }
 
   /**
    * @brief Minimum reachable position of an axis.
    * @param type @c PTU_PAN or @c PTU_TILT.
    * @return Minimum position in radians.
    */
-  float getMin(char type)
-  {
-    return getResolution(type) * (type == PTU_TILT ? TMin : PMin);
-  }
+  float getMin(char type) { return getResolution(type) * (type == PTU_TILT ? TMin : PMin); }
+
   /**
    * @brief Maximum reachable position of an axis.
    * @param type @c PTU_PAN or @c PTU_TILT.
    * @return Maximum position in radians.
    */
-  float getMax(char type)
-  {
-    return getResolution(type) * (type == PTU_TILT ? TMax : PMax);
-  }
+  float getMax(char type) { return getResolution(type) * (type == PTU_TILT ? TMax : PMax); }
 
   /**
    * @brief Minimum commandable speed of an axis.
    * @param type @c PTU_PAN or @c PTU_TILT.
    * @return Minimum speed in radians/second.
    */
-  float getMinSpeed(char type)
-  {
-    return getResolution(type) * (type == PTU_TILT ? TSMin : PSMin);
-  }
+  float getMinSpeed(char type) { return getResolution(type) * (type == PTU_TILT ? TSMin : PSMin); }
+
   /**
    * @brief Maximum commandable speed of an axis.
    * @param type @c PTU_PAN or @c PTU_TILT.
    * @return Maximum speed in radians/second.
    */
-  float getMaxSpeed(char type)
-  {
-    return getResolution(type) * (type == PTU_TILT ? TSMax : PSMax);
-  }
+  float getMaxSpeed(char type) { return getResolution(type) * (type == PTU_TILT ? TSMax : PSMax); }
 
   /**
    * @brief Move an axis to the desired position.

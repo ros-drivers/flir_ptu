@@ -44,15 +44,11 @@
 namespace flir_ptu_driver
 {
 
-TcpTransport::TcpTransport(const std::string & host, int port)
-: host_(host), port_(port), fd_(-1)
+TcpTransport::TcpTransport(const std::string & host, int port) : host_(host), port_(port), fd_(-1)
 {
 }
 
-TcpTransport::~TcpTransport()
-{
-  close();
-}
+TcpTransport::~TcpTransport() { close(); }
 
 bool TcpTransport::open()
 {
@@ -80,7 +76,7 @@ bool TcpTransport::open()
   if (inet_pton(AF_INET, host_.c_str(), &addr.sin_addr) <= 0)
   {
     // Try hostname resolution
-    struct addrinfo hints, * res;
+    struct addrinfo hints, *res;
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -116,14 +112,14 @@ void TcpTransport::close()
   }
 }
 
-bool TcpTransport::isOpen() const
-{
-  return fd_ >= 0;
-}
+bool TcpTransport::isOpen() const { return fd_ >= 0; }
 
 void TcpTransport::write(const std::string & data)
 {
-  if (fd_ < 0) return;
+  if (fd_ < 0)
+  {
+    return;
+  }
   ::send(fd_, data.c_str(), data.size(), MSG_NOSIGNAL);
 }
 
@@ -135,9 +131,15 @@ std::string TcpTransport::readline(size_t max_len, char eol)
   while (result.size() < max_len)
   {
     ssize_t n = ::recv(fd_, &c, 1, 0);
-    if (n <= 0) break;
+    if (n <= 0)
+    {
+      break;
+    }
     result += c;
-    if (c == eol) break;
+    if (c == eol)
+    {
+      break;
+    }
   }
   // Strip trailing \r\n
   while (!result.empty() && (result.back() == '\r' || result.back() == '\n'))
@@ -155,7 +157,10 @@ std::string TcpTransport::read(size_t size)
   while (total < size)
   {
     ssize_t n = ::recv(fd_, &result[total], size - total, 0);
-    if (n <= 0) break;
+    if (n <= 0)
+    {
+      break;
+    }
     total += static_cast<size_t>(n);
   }
   result.resize(total);
@@ -164,7 +169,10 @@ std::string TcpTransport::read(size_t size)
 
 size_t TcpTransport::available()
 {
-  if (fd_ < 0) return 0;
+  if (fd_ < 0)
+  {
+    return 0;
+  }
   int bytes_available = 0;
   ioctl(fd_, FIONREAD, &bytes_available);
   return static_cast<size_t>(bytes_available);
@@ -172,7 +180,10 @@ size_t TcpTransport::available()
 
 void TcpTransport::flush()
 {
-  if (fd_ < 0) return;
+  if (fd_ < 0)
+  {
+    return;
+  }
   // Drain any buffered data
   char buf[256];
   int bytes_available = 0;
@@ -180,7 +191,10 @@ void TcpTransport::flush()
   while (bytes_available > 0)
   {
     ssize_t n = ::recv(fd_, buf, std::min(static_cast<int>(sizeof(buf)), bytes_available), 0);
-    if (n <= 0) break;
+    if (n <= 0)
+    {
+      break;
+    }
     ioctl(fd_, FIONREAD, &bytes_available);
   }
 }
