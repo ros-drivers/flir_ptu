@@ -1,44 +1,33 @@
 <?xml version="1.0"?>
-<package>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>flir_ptu_driver</name>
   <version>0.2.3</version>
-  <description>Driver for the FLIR pan/tilt units.</description>
+  <description>ROS 2 driver for FLIR pan-tilt units with serial and TCP/Ethernet support.</description>
 
-  <maintainer email="mpurvis@clearpathrobotics.com">Mike Purvis</maintainer>
+  <maintainer email="tbaltovski@clearpathrobotics.com">Tony Baltovski</maintainer>
 
-  <url type="website">http://wiki.ros.org/flir_ptu_driver</url>
-  <url type="repository">https://github.com/ros-drivers/flir_ptu.git</url>
+  <url type="repository">https://github.com/ros-drivers/flir_ptu</url>
   <url type="bugtracker">https://github.com/ros-drivers/flir_ptu/issues</url>
 
-  <!-- Authors -->
+  <author email="mpurvis@clearpathrobotics.com">Mike Purvis</author>
   <author email="erik@cse.wustl.edu">Erik Karulf</author>
-  <author email="davidlu@wustl.edu">David V. Lu</author>
-  <author email="n.a.hawes@cs.bham.ac.uk">Nick Hawes</author>
 
-  <license>GPL</license>
+  <license>GPL-2.0-or-later</license>
 
-  <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>actionlib</build_depend>
-  <build_depend>boost</build_depend>
-  <build_depend>diagnostic_updater</build_depend>
-  <build_depend>roscpp</build_depend>
-  <build_depend>roslaunch</build_depend>
-  <build_depend>roslint</build_depend>
-  <build_depend>rospy</build_depend>
-  <build_depend>sensor_msgs</build_depend>
-  <build_depend>serial</build_depend>
-  <build_depend>tf</build_depend>
-  <run_depend>actionlib</run_depend>
-  <run_depend>controller_manager</run_depend>
-  <run_depend>diagnostic_updater</run_depend>
-  <run_depend>flir_ptu_description</run_depend>
-  <run_depend>robot_state_publisher</run_depend>
-  <run_depend>roscpp</run_depend>
-  <run_depend>rospy</run_depend>
-  <run_depend>sensor_msgs</run_depend>
-  <run_depend>serial</run_depend>
-  <run_depend>std_msgs</run_depend>
-  <run_depend>tf</run_depend>
-  <run_depend>velocity_controllers</run_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>diagnostic_updater</depend>
+
+  <exec_depend>robot_state_publisher</exec_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>

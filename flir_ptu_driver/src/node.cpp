@@ -28,329 +28,358 @@
  *
  */
 
-#include <diagnostic_updater/diagnostic_updater.h>
-#include <diagnostic_updater/publisher.h>
+#include <diagnostic_updater/diagnostic_updater.hpp>
+#include <diagnostic_updater/publisher.hpp>
 #include <flir_ptu_driver/driver.h>
-#include <ros/ros.h>
-#include <sensor_msgs/JointState.h>
-#include <serial/serial.h>
-#include <std_msgs/Bool.h>
+#include <flir_ptu_driver/serial_transport.h>
+#include <flir_ptu_driver/tcp_transport.h>
+#include <rclcpp/rclcpp.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <std_msgs/msg/empty.hpp>
 
+#include <memory>
 #include <string>
 
 namespace flir_ptu_driver
 {
 
-class Node
+class PtuNode : public rclcpp::Node
 {
 public:
-  explicit Node(ros::NodeHandle& node_handle);
-  ~Node();
-
-  // Service Control
-  void connect();
-  bool ok()
+  PtuNode()
+  : rclcpp::Node("ptu_driver"), m_pantilt(nullptr)
   {
-    return m_pantilt != NULL;
+    // Declare parameters
+    this->declare_parameter<std::string>("connection_type", "tcp");
+    this->declare_parameter<std::string>("port", PTU_SERIAL_DEFAULT_PORT);
+    this->declare_parameter<int>("baud", PTU_SERIAL_DEFAULT_BAUD);
+    this->declare_parameter<std::string>("ip_addr", PTU_DEFAULT_TCP_IP);
+    this->declare_parameter<int>("tcp_port", PTU_DEFAULT_TCP_PORT);
+    this->declare_parameter<bool>("limits_enabled", true);
+    this->declare_parameter<double>("default_velocity", PTU_DEFAULT_VEL);
+    this->declare_parameter<int>("hz", PTU_DEFAULT_HZ);
+    this->declare_parameter<std::string>("joint_name_prefix", "ptu_");
+
+    m_joint_name_prefix = this->get_parameter("joint_name_prefix").as_string();
+    default_velocity_ = this->get_parameter("default_velocity").as_double();
+
+    // Diagnostic updater
+    m_updater = std::make_unique<diagnostic_updater::Updater>(this);
+    m_updater->setHardwareID("unknown");
+    m_updater->add("PTU Status", this, &PtuNode::produce_diagnostics);
   }
-  void disconnect();
 
-  // Service Execution
-  void spinCallback(const ros::TimerEvent&);
+  void connect()
+  {
+    // If reconnecting, disconnect first
+    if (ok())
+    {
+      disconnect();
+    }
 
-  // Callback Methods
-  void cmdCallback(const sensor_msgs::JointState::ConstPtr& msg);
-  void resetCallback(const std_msgs::Bool::ConstPtr& msg);
+    std::string connection_type = this->get_parameter("connection_type").as_string();
 
-  void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat);
+    std::unique_ptr<Transport> transport;
 
-protected:
-  diagnostic_updater::Updater* m_updater;
-  PTU* m_pantilt;
-  ros::NodeHandle m_node;
-  ros::Publisher  m_joint_pub;
-  ros::Subscriber m_joint_sub;
-  ros::Subscriber m_reset_sub;
+    if (connection_type == "tcp")
+    {
+      std::string ip_addr = this->get_parameter("ip_addr").as_string();
+      int tcp_port = this->get_parameter("tcp_port").as_int();
+
+      RCLCPP_INFO(this->get_logger(),
+        "Attempting to connect to FLIR PTU via TCP on %s:%d", ip_addr.c_str(), tcp_port);
+
+      auto tcp = std::make_unique<TcpTransport>(ip_addr, tcp_port);
+      if (!tcp->open())
+      {
+        RCLCPP_ERROR(this->get_logger(), "Unable to connect to %s:%d", ip_addr.c_str(), tcp_port);
+        return;
+      }
+
+      // Drain the banner that the PTU sends on TCP connect
+      tcp->drainBanner();
+      transport = std::move(tcp);
+
+      m_connection_type = "tcp";
+      m_connection_endpoint = ip_addr + ":" + std::to_string(tcp_port);
+    }
+    else if (connection_type == "tty")
+    {
+      std::string port = this->get_parameter("port").as_string();
+      int baud = this->get_parameter("baud").as_int();
+
+      RCLCPP_INFO(this->get_logger(),
+        "Attempting to connect to FLIR PTU via serial on %s at %d baud", port.c_str(), baud);
+
+      auto serial = std::make_unique<SerialTransport>(port, baud);
+      if (!serial->open())
+      {
+        RCLCPP_ERROR(this->get_logger(), "Unable to open port %s", port.c_str());
+        return;
+      }
+      transport = std::move(serial);
+
+      m_connection_type = "tty";
+      m_connection_endpoint = port + "@" + std::to_string(baud);
+    }
+    else
+    {
+      RCLCPP_ERROR(this->get_logger(), "Unknown connection_type: '%s' (use 'tty' or 'tcp')",
+        connection_type.c_str());
+      return;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "FLIR PTU port opened, now initializing.");
+
+    m_pantilt = std::make_unique<PTU>(std::move(transport));
+
+    if (!m_pantilt->initialize())
+    {
+      RCLCPP_ERROR(this->get_logger(), "Could not initialize FLIR PTU.");
+      disconnect();
+      return;
+    }
+
+    bool limit = this->get_parameter("limits_enabled").as_bool();
+    if (!limit)
+    {
+      m_pantilt->disableLimits();
+      RCLCPP_INFO(this->get_logger(), "FLIR PTU limits disabled.");
+    }
+    m_limits_enabled = limit;
+
+    // Update hardware ID now that we know what we're talking to.
+    m_updater->setHardwareID("flir_ptu:" + m_connection_endpoint);
+
+    // Cache the firmware/version banner so it can be reported via diagnostics
+    // and logged on startup.
+    m_firmware_version = m_pantilt->getVersion();
+    if (!m_firmware_version.empty())
+    {
+      RCLCPP_INFO(this->get_logger(), "FLIR PTU firmware: %s", m_firmware_version.c_str());
+    }
+
+    RCLCPP_INFO(this->get_logger(), "FLIR PTU initialized.");
+
+    // Log limits
+    RCLCPP_INFO(this->get_logger(), "Pan range: [%.4f, %.4f] rad, speed: [%.4f, %.4f] rad/s",
+      m_pantilt->getMin(PTU_PAN), m_pantilt->getMax(PTU_PAN),
+      m_pantilt->getMinSpeed(PTU_PAN), m_pantilt->getMaxSpeed(PTU_PAN));
+    RCLCPP_INFO(this->get_logger(), "Tilt range: [%.4f, %.4f] rad, speed: [%.4f, %.4f] rad/s",
+      m_pantilt->getMin(PTU_TILT), m_pantilt->getMax(PTU_TILT),
+      m_pantilt->getMinSpeed(PTU_TILT), m_pantilt->getMaxSpeed(PTU_TILT));
+
+    // Publishers
+    m_joint_pub = this->create_publisher<sensor_msgs::msg::JointState>("state", 1);
+
+    // Frequency diagnostic on published joint_states (tolerate +/- 10%).
+    int hz = this->get_parameter("hz").as_int();
+    m_expected_hz_min = static_cast<double>(hz) * 0.9;
+    m_expected_hz_max = static_cast<double>(hz) * 1.1;
+    m_joint_freq = std::make_shared<diagnostic_updater::HeaderlessTopicDiagnostic>(
+      "joint_states", *m_updater,
+      diagnostic_updater::FrequencyStatusParam(&m_expected_hz_min, &m_expected_hz_max, 0.1, 5));
+
+    // Subscribers
+    m_joint_sub = this->create_subscription<sensor_msgs::msg::JointState>(
+      "cmd", 1, std::bind(&PtuNode::cmdCallback, this, std::placeholders::_1));
+
+    m_reset_sub = this->create_subscription<std_msgs::msg::Empty>(
+      "reset", 1, std::bind(&PtuNode::resetCallback, this, std::placeholders::_1));
+
+    // Timer
+    m_timer = this->create_wall_timer(
+      std::chrono::milliseconds(1000 / hz),
+      std::bind(&PtuNode::spinCallback, this));
+  }
+
+  bool ok() const
+  {
+    return m_pantilt != nullptr;
+  }
+
+  void disconnect()
+  {
+    m_timer.reset();
+    m_joint_pub.reset();
+    m_joint_sub.reset();
+    m_reset_sub.reset();
+    m_joint_freq.reset();
+    m_pantilt.reset();
+  }
+
+private:
+  void cmdCallback(const sensor_msgs::msg::JointState::ConstSharedPtr msg)
+  {
+    RCLCPP_DEBUG(this->get_logger(), "PTU command callback.");
+    if (!ok()) return;
+
+    if (msg->position.size() != 2)
+    {
+      RCLCPP_ERROR(this->get_logger(),
+        "JointState command to PTU has wrong number of position elements.");
+      return;
+    }
+
+    double pan = msg->position[0];
+    double tilt = msg->position[1];
+    double panspeed, tiltspeed;
+
+    if (msg->velocity.size() == 2)
+    {
+      panspeed = msg->velocity[0];
+      tiltspeed = msg->velocity[1];
+    }
+    else
+    {
+      RCLCPP_WARN_ONCE(this->get_logger(),
+        "JointState command to PTU has wrong number of velocity elements; using default velocity.");
+      panspeed = default_velocity_;
+      tiltspeed = default_velocity_;
+    }
+
+    m_pantilt->setPosition(PTU_PAN, pan);
+    m_pantilt->setPosition(PTU_TILT, tilt);
+    m_pantilt->setSpeed(PTU_PAN, panspeed);
+    m_pantilt->setSpeed(PTU_TILT, tiltspeed);
+  }
+
+  void resetCallback(const std_msgs::msg::Empty::ConstSharedPtr /*msg*/)
+  {
+    RCLCPP_INFO(this->get_logger(), "Resetting the PTU");
+    m_pantilt->home();
+  }
+
+  void produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper & stat)
+  {
+    if (!ok())
+    {
+      stat.summary(diagnostic_updater::DiagnosticStatusWrapper::ERROR, "Not connected");
+      stat.add("Connection type", m_connection_type);
+      stat.add("Endpoint", m_connection_endpoint);
+      stat.add("Firmware", m_firmware_version.empty() ? "unknown" : m_firmware_version);
+      return;
+    }
+
+    if (m_comm_errors > 0)
+    {
+      stat.summary(diagnostic_updater::DiagnosticStatusWrapper::WARN,
+        "Connected, recent communication errors");
+    }
+    else
+    {
+      stat.summary(diagnostic_updater::DiagnosticStatusWrapper::OK, "Connected");
+    }
+
+    stat.add("Connection type", m_connection_type);
+    stat.add("Endpoint", m_connection_endpoint);
+    stat.add("Firmware", m_firmware_version.empty() ? "unknown" : m_firmware_version);
+    stat.add("Limits enabled", m_limits_enabled);
+    stat.add("PTU Mode", m_last_mode == PTU_POSITION ? "Position" :
+      (m_last_mode == PTU_VELOCITY ? "Velocity" : "Unknown"));
+    stat.add("Pan position (rad)", m_last_pan);
+    stat.add("Tilt position (rad)", m_last_tilt);
+    stat.add("Pan velocity (rad/s)", m_last_pan_speed);
+    stat.add("Tilt velocity (rad/s)", m_last_tilt_speed);
+    stat.add("Pan range (rad)", std::to_string(m_pantilt->getMin(PTU_PAN)) + " to " +
+      std::to_string(m_pantilt->getMax(PTU_PAN)));
+    stat.add("Tilt range (rad)", std::to_string(m_pantilt->getMin(PTU_TILT)) + " to " +
+      std::to_string(m_pantilt->getMax(PTU_TILT)));
+    stat.add("Communication errors", m_comm_errors);
+  }
+
+  void spinCallback()
+  {
+    if (!ok()) return;
+
+    // Read Position & Speed
+    double pan  = m_pantilt->getPosition(PTU_PAN);
+    double tilt = m_pantilt->getPosition(PTU_TILT);
+
+    double panspeed  = m_pantilt->getSpeed(PTU_PAN);
+    double tiltspeed = m_pantilt->getSpeed(PTU_TILT);
+
+    // Track communication health. getPosition()/getSpeed() return -1 on error.
+    const bool comm_ok = (pan != -1.0 && tilt != -1.0 && panspeed != -1.0 && tiltspeed != -1.0);
+    if (!comm_ok)
+    {
+      m_comm_errors++;
+    }
+    else
+    {
+      // Cache latest values so diagnostics don't re-query the hardware.
+      m_last_pan = pan;
+      m_last_tilt = tilt;
+      m_last_pan_speed = panspeed;
+      m_last_tilt_speed = tiltspeed;
+    }
+    m_last_mode = m_pantilt->getMode();
+
+    // Publish Position & Speed
+    sensor_msgs::msg::JointState joint_state;
+    joint_state.header.stamp = this->now();
+    joint_state.name.resize(2);
+    joint_state.position.resize(2);
+    joint_state.velocity.resize(2);
+    joint_state.name[0] = m_joint_name_prefix + "pan";
+    joint_state.position[0] = pan;
+    joint_state.velocity[0] = panspeed;
+    joint_state.name[1] = m_joint_name_prefix + "tilt";
+    joint_state.position[1] = tilt;
+    joint_state.velocity[1] = tiltspeed;
+    m_joint_pub->publish(joint_state);
+
+    // Tick the joint_states frequency monitor so diagnostics can flag stalls.
+    if (m_joint_freq)
+    {
+      m_joint_freq->tick();
+    }
+
+    m_updater->force_update();
+  }
+
+  std::unique_ptr<diagnostic_updater::Updater> m_updater;
+  std::shared_ptr<diagnostic_updater::HeaderlessTopicDiagnostic> m_joint_freq;
+  std::unique_ptr<PTU> m_pantilt;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_pub;
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr m_joint_sub;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr m_reset_sub;
+  rclcpp::TimerBase::SharedPtr m_timer;
 
   std::string m_joint_name_prefix;
   double default_velocity_;
-  ConnectType m_connection_type;  // connection is either tty or tcp
 
-private:
-  bool m_test_mode;  // if true send pan and tilt commands periodically
-  void testPanTilt(void);
+  // Cached state for diagnostics.
+  std::string m_connection_type{"unknown"};
+  std::string m_connection_endpoint;
+  std::string m_firmware_version;
+  bool m_limits_enabled{true};
+  double m_last_pan{0.0};
+  double m_last_tilt{0.0};
+  double m_last_pan_speed{0.0};
+  double m_last_tilt_speed{0.0};
+  char m_last_mode{-1};
+  size_t m_comm_errors{0};
+  double m_expected_hz_min{1.0};
+  double m_expected_hz_max{1.0};
 };
-
-Node::Node(ros::NodeHandle& node_handle)
-  : m_pantilt(NULL), m_node(node_handle)
-{
-  m_updater = new diagnostic_updater::Updater();
-  m_updater->setHardwareID("none");
-  m_updater->add("PTU Status", this, &Node::produce_diagnostics);
-  m_connection_type = tty;
-
-  ros::param::param<std::string>("~joint_name_prefix", m_joint_name_prefix, "ptu_");
-  ros::param::param<bool>("/ptu/ptu_driver/test_pan_tilt_mode", m_test_mode, false);
-  ROS_INFO_STREAM("FLIR PTU - test mode is ----- " << (m_test_mode ? "ON" : "OFF") << " -----");
-}
-
-Node::~Node()
-{
-  disconnect();
-  delete m_updater;
-}
-
-/** Opens the connection to the PTU and sets appropriate parameters.
-    Also manages subscriptions/publishers */
-void Node::connect()
-{
-  // If we are reconnecting, first make sure to disconnect
-  if (ok())
-  {
-    disconnect();
-  }
-
-  // Check param to determine whether TTY or TCP connection to FLIR PTU
-  std::string port;
-  int32_t baud;
-  bool limit;
-
-  ros::param::param<bool>("~limits_enabled", limit, PTU_LIMITS);
-  ros::param::param<double>("~default_velocity", default_velocity_, PTU_DEFAULT_VEL);
-
-  std::ostringstream ss;
-  std::string connection_type_string;
-  std::string ip_addr;
-  int32_t tcp_port;
-
-
-  ros::NodeHandle nh("~");
-
-  ros::param::param<std::string>("~connection_type", connection_type_string, PTU_DEFAULT_CONNECTION);
-
-  if (!strcmp("tcp", connection_type_string.c_str()))
-  {
-    m_connection_type = tcp;
-    ros::param::param<std::string>("~ip_addr", ip_addr, PTU_DEFAULT_TCP_IP);
-    ros::param::param<int32_t>("~tcp_port", tcp_port, PTU_DEFAULT_TCP_PORT);
-    ss << connection_type_string << ":" << ip_addr << ":" << tcp_port;
-  }
-  else if (!strcmp("tty", connection_type_string.c_str()))
-  {
-    m_connection_type = tty;
-    // Query for serial configuration
-    ros::param::param<std::string>("~port", port, PTU_DEFAULT_PORT);
-    ros::param::param<int32_t>("~baud", baud, PTU_DEFAULT_BAUD);
-    ss << connection_type_string << ":" << port << ":" << baud;
-  }
-  else
-  {
-    ROS_ERROR_STREAM("Unknown connection type (tty or tcp): " << connection_type_string);
-    return;
-  }
-
-  // Connect to the PTU
-  ROS_INFO_STREAM("Attempting to connect to FLIR PTU on " << ss.str() );
-  m_pantilt = new PTU(m_connection_type);
-
-  try
-  {
-    if (m_connection_type == tty)
-    {
-      m_pantilt->connectTTY(port, baud);
-    }
-    else if (m_connection_type == tcp)
-    {
-      m_pantilt->connectTCP(ip_addr, tcp_port);
-    }
-  }
-  catch (serial::IOException& e)
-  {
-    ROS_ERROR_STREAM("Unable to open connection " << ss.str());
-    return;
-  }
-
-  ROS_INFO_STREAM("FLIR PTU port opened, now initializing.");
-
-  if (!m_pantilt->initialize())
-  {
-    ROS_ERROR_STREAM("Could not initialize FLIR PTU on " << ss.str());
-    disconnect();
-    return;
-  }
-
-  if (!limit)
-  {
-    m_pantilt->disableLimits();
-    ROS_INFO("FLIR PTU limits disabled.");
-  }
-
-  ROS_INFO("FLIR PTU initialized.");
-
-  m_node.setParam("min_tilt", m_pantilt->getMin(PTU_TILT));
-  m_node.setParam("max_tilt", m_pantilt->getMax(PTU_TILT));
-  m_node.setParam("min_tilt_speed", m_pantilt->getMinSpeed(PTU_TILT));
-  m_node.setParam("max_tilt_speed", m_pantilt->getMaxSpeed(PTU_TILT));
-  m_node.setParam("tilt_step", m_pantilt->getResolution(PTU_TILT));
-
-  m_node.setParam("min_pan", m_pantilt->getMin(PTU_PAN));
-  m_node.setParam("max_pan", m_pantilt->getMax(PTU_PAN));
-  m_node.setParam("min_pan_speed", m_pantilt->getMinSpeed(PTU_PAN));
-  m_node.setParam("max_pan_speed", m_pantilt->getMaxSpeed(PTU_PAN));
-  m_node.setParam("pan_step", m_pantilt->getResolution(PTU_PAN));
-
-  // Publishers : Only publish the most recent reading
-  m_joint_pub = m_node.advertise
-                <sensor_msgs::JointState>("state", 1);
-
-  // Subscribers : Only subscribe to the most recent instructions
-  m_joint_sub = m_node.subscribe
-                <sensor_msgs::JointState>("cmd", 1, &Node::cmdCallback, this);
-
-  m_reset_sub = m_node.subscribe
-                <std_msgs::Bool>("reset", 1, &Node::resetCallback, this);
-}
-
-/** Disconnect */
-void Node::disconnect()
-{
-  if (m_pantilt != NULL)
-  {
-    delete m_pantilt;   // Closes the connection
-    m_pantilt = NULL;   // Marks the service as disconnected
-  }
-}
-
-/** Callback for resetting PTU */
-void Node::resetCallback(const std_msgs::Bool::ConstPtr& msg)
-{
-  ROS_INFO("Resetting the PTU");
-  m_pantilt->home();
-}
-
-/** Callback for getting new Goal JointState */
-void Node::cmdCallback(const sensor_msgs::JointState::ConstPtr& msg)
-{
-  ROS_DEBUG("PTU command callback.");
-
-  if (!ok()) return;
-
-  if (msg->position.size() != 2)
-  {
-    ROS_ERROR("JointState command to PTU has wrong number of position elements.");
-    return;
-  }
-
-  double pan = msg->position[0];
-  double tilt = msg->position[1];
-  double panspeed, tiltspeed;
-
-  if (msg->velocity.size() == 2)
-  {
-    panspeed = msg->velocity[0];
-    tiltspeed = msg->velocity[1];
-  }
-  else
-  {
-    ROS_WARN_ONCE("JointState command to PTU has wrong number of velocity elements; using default velocity.");
-    panspeed = default_velocity_;
-    tiltspeed = default_velocity_;
-  }
-
-  m_pantilt->setPosition(PTU_PAN, pan);
-  m_pantilt->setPosition(PTU_TILT, tilt);
-  m_pantilt->setSpeed(PTU_PAN, panspeed);
-  m_pantilt->setSpeed(PTU_TILT, tiltspeed);
-}
-
-void Node::produce_diagnostics(diagnostic_updater::DiagnosticStatusWrapper &stat)
-{
-  stat.summary(diagnostic_msgs::DiagnosticStatus::OK, "All normal.");
-  stat.add("PTU Mode", m_pantilt->getMode() == PTU_POSITION ? "Position" : "Velocity");
-}
-
-void Node::testPanTilt(void)
-{
-  // make the ptu move every 5 secs
-  static int loopCnt = 0;
-  float radian;
-  int count;
-  char pt;
-  if ((++loopCnt % 200) == 75)
-  {
-    pt = 'p';
-    radian = static_cast <float> (rand()) / static_cast <float> (RAND_MAX) / 2.0;  // runtime/threadsafe_fn
-    m_pantilt->setPosition(pt, radian);
-    count = static_cast<int>(radian / m_pantilt->getResolution(pt));
-    ROS_INFO_STREAM("NODE::testPanTilt] PTU set pan " << pt << count);
-  }
-  else if ((loopCnt % 200) == 175)
-  {
-     pt = 't';
-     radian = -1.0 * static_cast <float> (rand()) / static_cast <float> (RAND_MAX);  // runtime/threadsafe_fn
-     m_pantilt->setPosition(pt, -radian / 4.0);
-     count = static_cast<int>(radian / m_pantilt->getResolution(pt));
-     ROS_INFO_STREAM("NODE::testPanTilt] PTU set tilt " << pt << count);
-  }
-}
-
-
-/**
- * Publishes a joint_state message with position and speed.
- * Also sends out updated TF info.
- */
-void Node::spinCallback(const ros::TimerEvent&)
-{
-  if (!ok()) return;
-
-  // Read Position
-  double pan  = m_pantilt->getPosition(PTU_PAN);
-  double tilt = m_pantilt->getPosition(PTU_TILT);
-
-  // Publish Position
-  sensor_msgs::JointState joint_state;
-  joint_state.header.stamp = ros::Time::now();
-  joint_state.name.resize(2);
-  joint_state.position.resize(2);
-  joint_state.name[0] = m_joint_name_prefix + "pan";
-  joint_state.position[0] = pan;
-  joint_state.name[1] = m_joint_name_prefix + "tilt";
-  joint_state.position[1] = tilt;
-  m_joint_pub.publish(joint_state);
-
-  m_updater->update();
-
-  if (m_test_mode)testPanTilt();
-}
 
 }  // namespace flir_ptu_driver
 
-int main(int argc, char** argv)
+int main(int argc, char ** argv)
 {
-  ros::init(argc, argv, "ptu");
-  ros::NodeHandle n;
+  rclcpp::init(argc, argv);
 
-  while (ros::ok())
+  auto node = std::make_shared<flir_ptu_driver::PtuNode>();
+  node->connect();
+
+  if (!node->ok())
   {
-    // Connect to PTU
-    flir_ptu_driver::Node ptu_node(n);
-    ptu_node.connect();
-
-    // Set up polling callback
-    int hz;
-    ros::param::param<int>("~hz", hz, PTU_DEFAULT_HZ);
-    ros::Timer spin_timer = n.createTimer(ros::Duration(1 / hz),
-        &flir_ptu_driver::Node::spinCallback, &ptu_node);
-
-    // Spin until there's a problem or we're in shutdown
-    ros::spin();
-
-    if (!ptu_node.ok())
-    {
-      ROS_ERROR("FLIR PTU disconnected, attempting reconnection.");
-      ros::Duration(1.0).sleep();
-    }
+    RCLCPP_ERROR(node->get_logger(), "Failed to connect to FLIR PTU. Exiting.");
+    return 1;
   }
 
+  rclcpp::spin(node);
+  rclcpp::shutdown();
   return 0;
 }

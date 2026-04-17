@@ -28,91 +28,101 @@
  *
  */
 
-#ifndef FLIR_PTU_DRIVER_DRIVER_H
-#define FLIR_PTU_DRIVER_DRIVER_H
+#pragma once
 
-// comm defines
-#define PTU_DEFAULT_CONNECTION "tty"
+#include <flir_ptu_driver/transport.h>
 
-// serial defines
-#define PTU_DEFAULT_BAUD 9600
-#define PTU_BUFFER_LEN 255
-#define PTU_DEFAULT_PORT "/dev/ttyUSB0"
-#define PTU_DEFAULT_HZ 10
-#define PTU_DEFAULT_VEL 0.0
-
-// tcp defines
-#define PTU_DEFAULT_TCP_IP "192.168.131.70"
-#define PTU_DEFAULT_TCP_PORT 4000
-
-// command defines
-#define PTU_PAN 'p'
-#define PTU_TILT 't'
-#define PTU_MIN 'n'
-#define PTU_MAX 'x'
-#define PTU_MIN_SPEED 'l'
-#define PTU_MAX_SPEED 'u'
-#define PTU_VELOCITY 'v'
-#define PTU_POSITION 'i'
-#define PTU_LIMITS true
-
+#include <cstddef>
+#include <memory>
 #include <string>
-#include <serial/serial.h>
-#include <flir_ptu_driver/tcp_client.h>
-
-namespace serial
-{
-class Serial;
-}
 
 namespace flir_ptu_driver
 {
-enum ConnectType { tty, tcp };  // connection is either tty or tcp (later maybe add udp)
 
+// Common defaults.
+constexpr std::size_t PTU_BUFFER_LEN = 255;
+constexpr int PTU_DEFAULT_HZ = 10;
+constexpr double PTU_DEFAULT_VEL = 0.0;
+
+// Serial defaults.
+constexpr int PTU_SERIAL_DEFAULT_BAUD = 9600;
+constexpr const char * PTU_SERIAL_DEFAULT_PORT = "/dev/ttyUSB0";
+
+// TCP defaults.
+constexpr const char * PTU_DEFAULT_TCP_IP = "192.168.131.70";
+constexpr int PTU_DEFAULT_TCP_PORT = 4000;
+
+// PTU command characters.
+constexpr char PTU_PAN = 'p';
+constexpr char PTU_TILT = 't';
+constexpr char PTU_MIN = 'n';
+constexpr char PTU_MAX = 'x';
+constexpr char PTU_MIN_SPEED = 'l';
+constexpr char PTU_MAX_SPEED = 'u';
+constexpr char PTU_VELOCITY = 'v';
+constexpr char PTU_POSITION = 'i';
+
+/**
+ * @brief High-level driver for FLIR Pan-Tilt Units.
+ *
+ * Wraps a @ref Transport (serial or TCP) and exposes the PTU's ASCII
+ * command set as typed C++ methods. All angular quantities are in radians
+ * and all rates are in radians per second; conversions to/from raw encoder
+ * counts use the per-axis resolutions reported by the PTU on @ref initialize().
+ *
+ * Pan/tilt axes are selected throughout the API by a single character:
+ *   - @c PTU_PAN  ('p') for the pan axis
+ *   - @c PTU_TILT ('t') for the tilt axis
+ */
 class PTU
 {
 public:
-  /** Constructor - opens port
-   * \param ser serial::Serial instance ready to communciate with device.
+  /**
+   * @brief Construct a PTU bound to an already-configured transport.
+   *
+   * The transport is not opened here; the caller must have called
+   * @c transport->open() before @ref initialize().
+   *
+   * @param transport Transport instance ready to communicate with the device.
    */
-  explicit PTU(ConnectType connection) :
-      initialized_(false), ser_(NULL), tcpClient_(NULL), connection_type_(connection), connected_(false)
+  explicit PTU(std::unique_ptr<Transport> transport)
+  : transport_(std::move(transport)), initialized_(false)
   {
   }
 
-  /** \return true if initialization succeeds. */
+  /**
+   * @brief Query axis resolutions and limits and prepare for commanding.
+   * @return @c true if the PTU responded to all initialization queries.
+   */
   bool initialize();
 
-  /**  \return true if PTU software motion limits are disabled. */
+  /**
+   * @brief Disable the PTU's internal soft motion limits.
+   * @return @c true if the command was acknowledged.
+   */
   bool disableLimits();
 
-  /** \return true if the serial port is open and PTU initialized. */
+  /// @return @c true if the transport is open and the PTU has been initialized.
   bool initialized();
 
-  bool connectTTY(std::string port, int32_t baud);  // for tty connection
-  bool connectTCP(std::string ip_addr, int32_t tcp_port);  // for tcp connection
-  void ptuWrite(std::string command);  // to tty or tcp as required
-  size_t ptuReadline(std::string &buffer, size_t size = 65536, std::string eol = "\n");
-  std::string ptuRead(size_t size = 1);
-  size_t  ptuRead(std::string &buffer, size_t size = 1);
-  void ptuFlush();  // flush, if a tty
-  size_t available(); /*! Return the number of characters in the buffer. */
-
   /**
-   * \param type 'p' or 't'
-   * \return position in radians
+   * @brief Read the current position of an axis.
+   * @param type @c PTU_PAN or @c PTU_TILT.
+   * @return Position in radians.
    */
   float getPosition(char type);
 
   /**
-   * \param type 'p' or 't'
-   * \return speed in radians/second
+   * @brief Read the current commanded speed of an axis.
+   * @param type @c PTU_PAN or @c PTU_TILT.
+   * @return Speed in radians/second.
    */
   float getSpeed(char type);
 
   /**
-   * \param type 'p' or 't'
-   * \return resolution in radians/count
+   * @brief Per-count angular resolution of an axis.
+   * @param type @c PTU_PAN or @c PTU_TILT.
+   * @return Resolution in radians/count.
    */
   float getResolution(char type)
   {
@@ -120,16 +130,18 @@ public:
   }
 
   /**
-   * \param type 'p' or 't'
-   * \return Minimum position in radians
+   * @brief Minimum reachable position of an axis.
+   * @param type @c PTU_PAN or @c PTU_TILT.
+   * @return Minimum position in radians.
    */
   float getMin(char type)
   {
     return getResolution(type) * (type == PTU_TILT ? TMin : PMin);
   }
   /**
-   * \param type 'p' or 't'
-   * \return Maximum position in radians
+   * @brief Maximum reachable position of an axis.
+   * @param type @c PTU_PAN or @c PTU_TILT.
+   * @return Maximum position in radians.
    */
   float getMax(char type)
   {
@@ -137,16 +149,18 @@ public:
   }
 
   /**
-   * \param type 'p' or 't'
-   * \return Minimum speed in radians/second
+   * @brief Minimum commandable speed of an axis.
+   * @param type @c PTU_PAN or @c PTU_TILT.
+   * @return Minimum speed in radians/second.
    */
   float getMinSpeed(char type)
   {
     return getResolution(type) * (type == PTU_TILT ? TSMin : PSMin);
   }
   /**
-   * \param type 'p' or 't'
-   * \return Maximum speed in radians/second
+   * @brief Maximum commandable speed of an axis.
+   * @param type @c PTU_PAN or @c PTU_TILT.
+   * @return Maximum speed in radians/second.
    */
   float getMaxSpeed(char type)
   {
@@ -154,51 +168,61 @@ public:
   }
 
   /**
-   * Moves the PTU to the desired position. If Block is true,
-   * the call blocks until the desired position is reached
-   * \param type 'p' or 't'
-   * \param pos desired position in radians
-   * \param Block block until ready
-   * \return True if successfully sent command
-  */
+   * @brief Move an axis to the desired position.
+   *
+   * If @p Block is @c true the call does not return until the PTU reports
+   * that the target has been reached; otherwise it returns as soon as the
+   * command is acknowledged.
+   *
+   * @param type  @c PTU_PAN or @c PTU_TILT.
+   * @param pos   Desired position in radians.
+   * @param Block Wait for the move to complete before returning.
+   * @return @c true if the command was successfully sent.
+   */
   bool setPosition(char type, float pos, bool Block = false);
 
   /**
-   * sets the desired speed in radians/second
-   * \param type 'p' or 't'
-   * \param speed desired speed in radians/second
-   * \return True if successfully sent command
-  */
+   * @brief Set the commanded speed of an axis.
+   * @param type  @c PTU_PAN or @c PTU_TILT.
+   * @param speed Desired speed in radians/second.
+   * @return @c true if the command was successfully sent.
+   */
   bool setSpeed(char type, float speed);
 
   /**
-   * set the control mode, position or velocity
-   * \param type 'v' for velocity, 'i' for position
-   * \return True if successfully sent command
+   * @brief Switch the PTU between position and velocity control modes.
+   * @param type @c PTU_VELOCITY ('v') or @c PTU_POSITION ('i').
+   * @return @c true if the command was successfully sent.
    */
   bool setMode(char type);
 
   /**
-   * get the control mode, position or velocity
-   * \return 'v' for velocity, 'i' for position
+   * @brief Query the active control mode.
+   * @return @c PTU_VELOCITY ('v') or @c PTU_POSITION ('i').
    */
   char getMode();
 
+  /**
+   * @brief Query the PTU firmware/version banner (response to the `v` command).
+   *
+   * The leading `*` and surrounding whitespace are stripped from the response,
+   * e.g. `"Pan-Tilt Controller v3.5.2, (C)2010-2022 Teledyne FLIR ..."`.
+   *
+   * @return The banner string, or an empty string if the query fails.
+   */
+  std::string getVersion();
+
+  /**
+   * @brief Home (reset) the PTU.
+   * @return @c true if the command was acknowledged.
+   */
   bool home();
 
 private:
-  /** get radian/count resolution
-   * \param type 'p' or 't'
-   * \return pan resolution if type=='p', tilt resolution if type=='t'
-   */
+  /// Query the per-count resolution of an axis from the PTU.
   float getRes(char type);
 
-  /** get limiting position/speed in counts or counts/second
-   *
-   * \param type 'p' or 't' (pan or tilt)
-   * \param limType {'n', 'x', 'l', 'u'} (min position, max position, min speed, max speed)
-   * \return limiting position/speed
-   */
+  /// Query a position or speed limit (in raw counts) for an axis.
   int getLimit(char type, char limType);
 
   // Position Limits
@@ -215,24 +239,18 @@ private:
   int PSMax;  ///< Max Pan Speed in Counts/second
 
 protected:
-  /** Sends a string to the PTU
-   *
-   * \param command string to be sent
-   * \return response string from unit.
+  /**
+   * @brief Send an ASCII command to the PTU and return its response.
+   * @param command Command string excluding any line terminator.
+   * @return Raw response from the PTU.
    */
   std::string sendCommand(std::string command);
 
-  ConnectType connection_type_;
-  bool connected_;
-  TcpClient* tcpClient_;
-  serial::Serial* ser_;
-
-  bool initialized_;
+  std::unique_ptr<Transport> transport_;  ///< Underlying byte-stream link to the PTU.
+  bool initialized_;                      ///< @c true after a successful @ref initialize().
 
   float tr;  ///< tilt resolution (rads/count)
   float pr;  ///< pan resolution (rads/count)
 };
 
 }  // namespace flir_ptu_driver
-
-#endif  // FLIR_PTU_DRIVER_DRIVER_H

@@ -28,39 +28,54 @@
  *
  */
 
-#include <boost/lexical_cast.hpp>
-#include <boost/algorithm/string/trim.hpp>
 #include <flir_ptu_driver/driver.h>
-#include <serial/serial.h>
-#include <ros/console.h>
 
-#include <math.h>
+#include <unistd.h>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 #include <string>
-#include <sys/ioctl.h>
-
-using boost::lexical_cast;
 
 namespace flir_ptu_driver
 {
 
-/** Templated wrapper function on lexical_cast to assist with extracting
- * values from serial response strings.
+/** Templated wrapper function to assist with extracting
+ * values from response strings.
  */
 template<typename T>
-T parseResponse(std::string responseBuffer)
+T parseResponse(const std::string & responseBuffer)
 {
-  T parsed;  // declared outside 'try' so gdb debugger can see it
+  T parsed = T();
 
   try
   {
     std::string trimmed = responseBuffer.substr(1);  // skip the leading '*'
-    boost::trim(trimmed);  // remove leading and trailing spaces
-    parsed = lexical_cast<T>(trimmed);
-    ROS_DEBUG_STREAM("Parsed response value: " << parsed);
+    // Trim whitespace
+    auto start = trimmed.find_first_not_of(" \t\r\n");
+    auto end = trimmed.find_last_not_of(" \t\r\n");
+    if (start == std::string::npos)
+    {
+      trimmed = "0";
+    }
+    else
+    {
+      trimmed = trimmed.substr(start, end - start + 1);
+    }
+
+    if constexpr (std::is_same_v<T, double>)
+    {
+      parsed = std::stod(trimmed);
+    }
+    else if constexpr (std::is_same_v<T, int>)
+    {
+      parsed = std::stoi(trimmed);
+    }
+
+    // Debug: parsed response value
   }
-  catch (boost::exception& e)
+  catch (const std::exception & e)
   {
-    ROS_ERROR_STREAM("Unable to parse " << responseBuffer);
+    std::cerr << "[flir_ptu_driver] Unable to parse '" << responseBuffer << "': " << e.what() << std::endl;
   }
 
   return parsed;
@@ -68,25 +83,25 @@ T parseResponse(std::string responseBuffer)
 
 bool PTU::initialized()
 {
-  return connected_ && initialized_;
+  return transport_ && transport_->isOpen() && initialized_;
 }
 
 bool PTU::disableLimits()
 {
-  ptuWrite("ld ");  // Disable Limits
-  ptuRead(20);
+  transport_->write("ld ");  // Disable Limits
+  transport_->read(20);
   Lim = false;
   return true;
 }
 
 bool PTU::initialize()
 {
-  ptuWrite("ft ");  // terse feedback
-  if (connection_type_ == tcp)ptuRead(20);  // tcp produces more output (* \r\n) than tty
-  ptuWrite("ed ");  // disable echo
-  if (connection_type_ == tcp)ptuRead(20);
-  ptuWrite("ci ");  // position mode
-  ptuRead(20);  // read and discard response to above commands
+  transport_->write("ft ");  // terse feedback
+  transport_->read(20);
+  transport_->write("ed ");  // disable echo
+  transport_->read(20);
+  transport_->write("ci ");  // position mode
+  transport_->read(20);
 
   // get pan tilt encoder res
   tr = getRes(PTU_TILT);
@@ -114,132 +129,23 @@ bool PTU::initialize()
   return initialized();
 }
 
-bool PTU::connectTCP(std::string ip_addr, int32_t tcp_port)  // for tcp connection
-{
-  if (!tcpClient_)
-  {
-    tcpClient_ = new TcpClient();
-  }
-  tcpClient_->conn(ip_addr, tcp_port);
-  tcpClient_->setTimeout(2, 0);  // set read timeout to X second
-  connected_ = true;
-
-  // for the TCP connection, the FLIR returns several lines of bannerish junk, about 120 chars
-  // we need to read this or it will cause trouble later parsing other cmd output
-  sleep(2);  // maybe need to sleep before ptu sends banner
-  ROS_INFO_STREAM("PTU::connectTCP: banner:");
-  for (int i=0; i < 10; i++)
-  {
-    std::string s = "";
-    int len;
-    len = ptuReadline(s);
-    if (len > 1)
-      ROS_INFO_STREAM("rcv len " << len << " " << s.c_str());
-    if (s.find( "Initializing...") != std::string::npos)
-      return true;  // the end of the banner
-  }
-
-  return true;
-}
-
-bool PTU::connectTTY(std::string port, int32_t baud)  // for tty connection
-{
-  if (!ser_)
-  {
-    ser_ = new serial::Serial();
-  }
-  ser_->setBaudrate(baud);
-  // serial::Timeout to = serial::Timeout(200, 200, 0, 200, 0);
-  // prevent lexical_cast error when tty slow. A better fix is to permit timeouts but deal with empty responseBuffer
-  serial::Timeout to = serial::Timeout(4000, 4000, 0, 200, 0);
-  ser_->setPort(port);
-  ser_->setTimeout(to);
-  ser_->open();
-  connected_ = true;
-  return true;
-}
-
-void PTU::ptuWrite(std::string command)
-{
-  if (connection_type_ == tty)
-    ser_->write(command);
-  else
-    tcpClient_->send_data(command);
-}
-
-std::string PTU::ptuRead(size_t size)  // default size=1
-{
-  std::string result;
-  if (connection_type_ == tty)
-    result = ser_->read(size);
-  else
-    result = tcpClient_->receive(size);
-  return result;
-}
-
-size_t  PTU::ptuRead(std::string &buffer, size_t size)
-{
-  if (connection_type_ == tty)
-  {
-      ser_->flush();
-  }
-  return 0;
-}
-
-size_t PTU::ptuReadline(std::string &buffer, size_t size, std::string eol)
-{
-  size_t len = 0;
-  // readline (std::string &buffer, size_t size = 65536, std::string eol = "\n");
-  if (connection_type_ == tty)
-  {
-    len = ser_->readline(buffer, PTU_BUFFER_LEN, "\n");
-  }
-  else
-  {
-    // buffer = tcpClient_->receive(size);
-    // len = buffer.length();
-    len = tcpClient_->readline(buffer, PTU_BUFFER_LEN, "\n");
-  }
-  return len;
-}
-
-void PTU::ptuFlush()
-{
-  if (connection_type_ == tty)
-  {
-      ser_->flush();
-  }
-}
-
-size_t PTU::available()  // Return the number of characters in the buffer.
-{
-  size_t len;
-  if (connection_type_ == tty)
-    len = ser_->available();
-  else
-    ioctl(tcpClient_->mysock, FIONREAD, &len);
-  return len;
-}
-
-
 std::string PTU::sendCommand(std::string command)
 {
-  std::string buffer;
-  ptuWrite(command);
-  ROS_DEBUG_STREAM("TX: " << command);
-  int length  = ptuReadline(buffer, PTU_BUFFER_LEN, "\n");
-  ROS_DEBUG_STREAM("RX: " << buffer);
-  // ROS_INFO_STREAM("[PTU::sendCommand] TX: " << command << " RX (length=" << length << ") ["  << buffer << "]");
+  // Drain any stale bytes in the receive buffer to keep TX/RX synchronized.
+  transport_->flush();
+  transport_->write(command);
+  // Debug: TX/RX
+  std::string buffer = transport_->readline(PTU_BUFFER_LEN);
   return buffer;
 }
 
 bool PTU::home()
 {
-  ROS_INFO("Sending command to reset PTU.");
+  std::cout << "[flir_ptu_driver] Sending command to reset PTU." << std::endl;
 
   // Issue reset command
-  ptuFlush();
-  ptuWrite(" r ");
+  transport_->flush();
+  transport_->write(" r ");
 
   std::string actual_response, expected_response("!T!T!P!P*");
 
@@ -248,29 +154,28 @@ bool PTU::home()
   {
     usleep(100000);
 
-    if (available() >= expected_response.length())
+    if (transport_->available() >= expected_response.length())
     {
-      ROS_INFO("PTU reset command response received.");
-      ptuRead(actual_response, expected_response.length());
+      std::cout << "[flir_ptu_driver] PTU reset command response received." << std::endl;
+      actual_response = transport_->read(expected_response.length());
       return (actual_response == expected_response);
     }
   }
 
-  ROS_WARN("PTU reset command response not received before timeout.");
+  std::cerr << "[flir_ptu_driver] PTU reset command response not received before timeout." << std::endl;
   return false;
 }
 
 // get radians/count resolution
 float PTU::getRes(char type)
 {
-  if (!connected_ == true)
-    return -1;
+  if (!transport_ || !transport_->isOpen()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + "r ");
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR_THROTTLE(30, "Error getting pan-tilt res");
+    std::cerr << "[flir_ptu_driver] Error getting pan-tilt res" << std::endl;
     return -1;
   }
 
@@ -282,19 +187,39 @@ float PTU::getRes(char type)
 // get position limit
 int PTU::getLimit(char type, char limType)
 {
-  if (!connected_ == true)return -1;
+  if (!transport_ || !transport_->isOpen()) return -1;
 
   std::string buffer = sendCommand(std::string() + type + limType + " ");
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR_THROTTLE(30, "Error getting pan-tilt limit");
+    std::cerr << "[flir_ptu_driver] Error getting pan-tilt limit" << std::endl;
     return -1;
   }
 
   return parseResponse<int>(buffer);
 }
 
+
+// get firmware/version banner
+std::string PTU::getVersion()
+{
+  if (!transport_ || !transport_->isOpen()) return std::string();
+
+  std::string buffer = sendCommand("v ");
+
+  if (buffer.length() < 2 || buffer[0] != '*')
+  {
+    std::cerr << "[flir_ptu_driver] Error getting PTU version" << std::endl;
+    return std::string();
+  }
+
+  std::string trimmed = buffer.substr(1);
+  auto start = trimmed.find_first_not_of(" \t\r\n");
+  auto end = trimmed.find_last_not_of(" \t\r\n");
+  if (start == std::string::npos) return std::string();
+  return trimmed.substr(start, end - start + 1);
+}
 
 // get position in radians
 float PTU::getPosition(char type)
@@ -305,7 +230,7 @@ float PTU::getPosition(char type)
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR_THROTTLE(30, "Error getting pan-tilt pos");
+    std::cerr << "[flir_ptu_driver] Error getting pan-tilt pos" << std::endl;
     return -1;
   }
 
@@ -326,18 +251,20 @@ bool PTU::setPosition(char type, float pos, bool block)
   {
     if (count < (type == PTU_TILT ? TMin : PMin) || count > (type == PTU_TILT ? TMax : PMax))
     {
-      ROS_ERROR_THROTTLE(30, "Pan Tilt Value out of Range: %c %f(%d) (%d-%d)\n",
-                type, pos, count, (type == PTU_TILT ? TMin : PMin), (type == PTU_TILT ? TMax : PMax));
+      std::cerr << "[flir_ptu_driver] Pan Tilt Value out of Range: " << type
+                << " " << pos << "(" << count << ") ("
+                << (type == PTU_TILT ? TMin : PMin) << "-"
+                << (type == PTU_TILT ? TMax : PMax) << ")" << std::endl;
       return false;
     }
   }
 
   std::string buffer = sendCommand(std::string() + type + "p" +
-                                   lexical_cast<std::string>(count) + " ");
+                                   std::to_string(count) + " ");
 
   if (buffer.empty() || buffer[0] != '*')
   {
-    ROS_ERROR("Error setting pan-tilt pos");
+    std::cerr << "[flir_ptu_driver] Error setting pan-tilt pos" << std::endl;
     return false;
   }
 
@@ -361,7 +288,7 @@ float PTU::getSpeed(char type)
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR("Error getting pan-tilt speed");
+    std::cerr << "[flir_ptu_driver] Error getting pan-tilt speed" << std::endl;
     return -1;
   }
 
@@ -381,17 +308,19 @@ bool PTU::setSpeed(char type, float pos)
   // Check limits
   if (abs(count) < (type == PTU_TILT ? TSMin : PSMin) || abs(count) > (type == PTU_TILT ? TSMax : PSMax))
   {
-    ROS_ERROR("Pan Tilt Speed Value out of Range: %c %f(%d) (%d-%d)\n",
-              type, pos, count, (type == PTU_TILT ? TSMin : PSMin), (type == PTU_TILT ? TSMax : PSMax));
+    std::cerr << "[flir_ptu_driver] Pan Tilt Speed Value out of Range: " << type
+              << " " << pos << "(" << count << ") ("
+              << (type == PTU_TILT ? TSMin : PSMin) << "-"
+              << (type == PTU_TILT ? TSMax : PSMax) << ")" << std::endl;
     return false;
   }
 
   std::string buffer = sendCommand(std::string() + type + "s" +
-                                   lexical_cast<std::string>(count) + " ");
+                                   std::to_string(count) + " ");
 
   if (buffer.empty() || buffer[0] != '*')
   {
-    ROS_ERROR("Error setting pan-tilt speed\n");
+    std::cerr << "[flir_ptu_driver] Error setting pan-tilt speed" << std::endl;
     return false;
   }
 
@@ -408,7 +337,7 @@ bool PTU::setMode(char type)
 
   if (buffer.empty() || buffer[0] != '*')
   {
-    ROS_ERROR("Error setting pan-tilt move mode");
+    std::cerr << "[flir_ptu_driver] Error setting pan-tilt move mode" << std::endl;
     return false;
   }
 
@@ -420,18 +349,17 @@ char PTU::getMode()
 {
   if (!initialized()) return -1;
 
-  // get pan tilt mode
   std::string buffer = sendCommand("c ");
 
   if (buffer.length() < 3 || buffer[0] != '*')
   {
-    ROS_ERROR("Error getting pan-tilt pos");
+    std::cerr << "[flir_ptu_driver] Error getting pan-tilt mode" << std::endl;
     return -1;
   }
 
-  if (buffer[2] == 'p')
+  if (buffer[2] == 'p' || buffer[2] == 'P')
     return PTU_VELOCITY;
-  else if (buffer[2] == 'i')
+  else if (buffer[2] == 'i' || buffer[2] == 'I')
     return PTU_POSITION;
   else
     return -1;

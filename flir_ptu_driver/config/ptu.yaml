@@ -1,0 +1,19 @@
+# Default parameters for the FLIR PTU driver
+ptu_driver:
+  ros__parameters:
+    # Connection type: "tty" for serial, "tcp" for Ethernet
+    connection_type: "tcp"
+
+    # Serial parameters (used when connection_type is "tty")
+    port: "/dev/ptu"
+    baud: 9600
+
+    # TCP parameters (used when connection_type is "tcp")
+    ip_addr: "192.168.131.70"
+    tcp_port: 4000
+
+    # General parameters
+    hz: 10
+    limits_enabled: false
+    default_velocity: 0.0
+    joint_name_prefix: "ptu_"

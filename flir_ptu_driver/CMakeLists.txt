@@ -1,46 +1,63 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(flir_ptu_driver)
 
-find_package(catkin REQUIRED COMPONENTS actionlib diagnostic_updater roscpp roslaunch roslint rospy serial sensor_msgs tf)
-find_package(Boost REQUIRED)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-catkin_package(
-   LIBRARIES flir_ptu_driver
-   CATKIN_DEPENDS sensor_msgs serial
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(diagnostic_updater REQUIRED)
+
+add_library(flir_ptu_driver
+  src/driver.cpp
+  src/serial_transport.cpp
+  src/tcp_transport.cpp
+)
+target_include_directories(flir_ptu_driver PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_compile_features(flir_ptu_driver PUBLIC cxx_std_17)
+ament_target_dependencies(flir_ptu_driver rclcpp)
+
+add_executable(ptu_node src/node.cpp)
+target_link_libraries(ptu_node flir_ptu_driver)
+ament_target_dependencies(ptu_node
+  rclcpp
+  sensor_msgs
+  std_msgs
+  diagnostic_updater
 )
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-include_directories(include
-  ${catkin_INCLUDE_DIRS}
-  ${Boost_INCLUDE_DIRS}
+install(TARGETS flir_ptu_driver
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
-## Declare a cpp library
-add_library(flir_ptu_driver src/driver.cpp src/tcp_client.cpp)
-target_link_libraries(flir_ptu_driver ${catkin_LIBRARIES})
-
-## Declare a cpp executable
-add_executable(flir_ptu_node src/node.cpp)
-target_link_libraries(flir_ptu_node ${catkin_LIBRARIES} flir_ptu_driver)
-add_dependencies(flir_ptu_node flir_ptu_msgs_generate_messages_cpp)
-set_target_properties(flir_ptu_node
-                      PROPERTIES OUTPUT_NAME ptu_node PREFIX "")
-
-install(TARGETS flir_ptu_driver flir_ptu_node
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+install(TARGETS ptu_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 install(PROGRAMS scripts/cmd_angles
-  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+  DESTINATION lib/${PROJECT_NAME}
+)
 
-install(DIRECTORY launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
+install(DIRECTORY include/
+  DESTINATION include
+)
 
-## Tests
-roslint_cpp()
-roslint_add_test()
-roslaunch_add_file_check(launch/ptu.launch
-  DEPENDENCIES flir_ptu_example_urdf flir_ptu_node)
+install(DIRECTORY launch config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  set(ament_cmake_copyright_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()

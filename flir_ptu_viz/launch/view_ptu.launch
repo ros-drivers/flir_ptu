@@ -1,3 +1,0 @@
-<launch>
-	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find flir_ptu_viz)/rviz/urdf.rviz" required="true" />
-</launch>

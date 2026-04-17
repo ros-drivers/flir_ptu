@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
-<robot name="ptu_d46"
-       xmlns:xacro="http://www.ros.org/wiki/xacro">
+<robot name="flir_ptu" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:arg name="model" default="ptu5" />
+
   <link name="base_link" />
 
-  <!-- Include and invoke the macro which creates a D46 -->
-  <xacro:include filename="d46.urdf.xacro" />
-  <xacro:ptu_d46 name="ptu" />
+  <xacro:include filename="flir_ptu.urdf.xacro" />
+  <xacro:flir_ptu name="ptu" model="$(arg model)" />
 
   <!-- Create a fixed joint to connect the PTU to the rest of the robot -->
   <joint name="base_to_ptu_base" type="fixed">
@@ -14,6 +14,4 @@
     <origin xyz="0 0 0"/>
   </joint>
 
-  <!-- If you had a lidar or some other device mounted on the PTU, you would create another
-       fixed joint here between the ptu_mount link and the origin of the device. -->
 </robot>

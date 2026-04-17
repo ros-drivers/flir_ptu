@@ -1,24 +1,43 @@
 #!/usr/bin/env python3
 
-import rospy
 import sys
 import time
+
+import rclpy
+from rclpy.node import Node
 
 from sensor_msgs.msg import JointState
 
 
-def set_angles(pan, tilt):
-    pub = rospy.Publisher("ptu/cmd", JointState, queue_size=1)
+def main():
+    if len(sys.argv) < 3:
+        print('Usage: cmd_angles <pan_rad> <tilt_rad> [velocity]')
+        sys.exit(1)
+
+    pan = float(sys.argv[1])
+    tilt = float(sys.argv[2])
+    velocity = float(sys.argv[3]) if len(sys.argv) > 3 else 0.6
+
+    rclpy.init()
+    node = Node('ptu_cmd_angles')
+
+    pub = node.create_publisher(JointState, 'ptu/cmd', 1)
+
+    # Wait for the driver to discover this publisher before sending.
     time.sleep(0.5)
 
     js = JointState()
-    js.name = [ "ptu_pan", "ptu_tilt" ]
-    js.velocity = [ 0.6, 0.6 ]
-    js.position = [ pan, tilt ]
+    js.name = ['ptu_pan', 'ptu_tilt']
+    js.position = [pan, tilt]
+    js.velocity = [velocity, velocity]
+
     pub.publish(js)
+    node.get_logger().info(
+        f'Published pan={pan:.4f} rad, tilt={tilt:.4f} rad, velocity={velocity:.4f} rad/s')
+
+    node.destroy_node()
+    rclpy.shutdown()
+
 
 if __name__ == '__main__':
-    rospy.init_node('ptu_cmd_angles')
-    set_angles(
-            float(sys.argv[1]),
-            float(sys.argv[2]))
+    main()

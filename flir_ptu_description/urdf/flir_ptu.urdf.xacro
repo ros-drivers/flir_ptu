@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+  Generic FLIR PTU xacro wrapper.
+  Provides a single `flir_ptu` macro that dispatches to the correct
+  model-specific macro based on the `model` argument.
+
+  Supported models: ptu5 (default), d46.
+
+  Usage:
+    <xacro:include filename="$(find flir_ptu_description)/urdf/flir_ptu.urdf.xacro" />
+    <xacro:flir_ptu name="ptu" model="ptu5" />
+-->
+<robot name="flir_ptu" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="ptu5.urdf.xacro" />
+  <xacro:include filename="d46.urdf.xacro" />
+
+  <xacro:macro name="flir_ptu" params="name model:=ptu5 pan_offset:=0.0">
+    <xacro:if value="${model == 'ptu5'}">
+      <xacro:ptu_5 name="${name}" pan_offset="${pan_offset}" />
+    </xacro:if>
+    <xacro:if value="${model == 'd46'}">
+      <xacro:ptu_d46 name="${name}" pan_offset="${pan_offset}" />
+    </xacro:if>
+    <xacro:unless value="${model == 'ptu5' or model == 'd46'}">
+      <xacro:invalid_flir_ptu_model model="${model}" />
+    </xacro:unless>
+  </xacro:macro>
+</robot>

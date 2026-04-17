@@ -1,0 +1,24 @@
+name: ROS 2 CI
+
+on:
+  push:
+    branches: [ros2]
+  pull_request:
+    branches: [ros2]
+  workflow_dispatch:
+
+jobs:
+  industrial_ci:
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - {ROS_DISTRO: jazzy,   ROS_REPO: main}
+          - {ROS_DISTRO: jazzy,   ROS_REPO: testing}
+          - {ROS_DISTRO: rolling, ROS_REPO: main}
+          - {ROS_DISTRO: rolling, ROS_REPO: testing}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ros-industrial/industrial_ci@master
+        env: ${{ matrix.env }}
