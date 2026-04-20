@@ -2,6 +2,12 @@
 Changelog for package flir_ptu_viz
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Linting.
+* Updated to ROS 2.
+* Contributors: Tony Baltovski
+
 0.2.3 (2023-09-14)
 ------------------
 

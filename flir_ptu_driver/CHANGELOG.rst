@@ -2,6 +2,13 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Added sim support, fixed function naming.
+* Linting.
+* Updated to ROS 2.
+* Contributors: Tony Baltovski
+
 0.2.3 (2023-09-14)
 ------------------
 * Expose joint_name_prefix as an arg in the launch file.  This makes it easier to add multiple PTUs.
