@@ -58,8 +58,10 @@ public:
     this->declare_parameter<double>("default_velocity", PTU_DEFAULT_VEL);
     this->declare_parameter<int>("hz", PTU_DEFAULT_HZ);
     this->declare_parameter<std::string>("joint_name_prefix", "ptu_");
+    this->declare_parameter<bool>("invert_pan", true);
 
     m_joint_name_prefix = this->get_parameter("joint_name_prefix").as_string();
+    m_invert_pan = this->get_parameter("invert_pan").as_bool();
     default_velocity_ = this->get_parameter("default_velocity").as_double();
 
     // Diagnostic updater
@@ -188,8 +190,8 @@ public:
     m_joint_sub = this->create_subscription<sensor_msgs::msg::JointState>(
       "cmd", 1, std::bind(&PtuNode::cmdCallback, this, std::placeholders::_1));
 
-    m_reset_sub = this->create_subscription<std_msgs::msg::Empty>(
-      "reset", 1, std::bind(&PtuNode::resetCallback, this, std::placeholders::_1));
+    m_recalibrate_sub = this->create_subscription<std_msgs::msg::Empty>(
+      "recalibrate", 1, std::bind(&PtuNode::recalibrateCallback, this, std::placeholders::_1));
 
     // Timer
     m_timer = this->create_wall_timer(
@@ -203,7 +205,7 @@ public:
     m_timer.reset();
     m_joint_pub.reset();
     m_joint_sub.reset();
-    m_reset_sub.reset();
+    m_recalibrate_sub.reset();
     m_joint_freq.reset();
     m_pantilt.reset();
   }
@@ -242,15 +244,20 @@ private:
       tiltspeed = default_velocity_;
     }
 
+    if (m_invert_pan)
+    {
+      pan = -pan;
+    }
+
     m_pantilt->setPosition(PTU_PAN, pan);
     m_pantilt->setPosition(PTU_TILT, tilt);
     m_pantilt->setSpeed(PTU_PAN, panspeed);
     m_pantilt->setSpeed(PTU_TILT, tiltspeed);
   }
 
-  void resetCallback(const std_msgs::msg::Empty::ConstSharedPtr /*msg*/)
+  void recalibrateCallback(const std_msgs::msg::Empty::ConstSharedPtr /*msg*/)
   {
-    RCLCPP_INFO(this->get_logger(), "Resetting the PTU");
+    RCLCPP_INFO(this->get_logger(), "Recalibrating the PTU");
     m_pantilt->home();
   }
 
@@ -319,6 +326,11 @@ private:
     }
     else
     {
+      if (m_invert_pan)
+      {
+        pan = -pan;
+        panspeed = -panspeed;
+      }
       // Cache latest values so diagnostics don't re-query the hardware.
       m_last_pan = pan;
       m_last_tilt = tilt;
@@ -355,11 +367,12 @@ private:
   std::unique_ptr<PTU> m_pantilt;
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr m_joint_pub;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr m_joint_sub;
-  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr m_reset_sub;
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr m_recalibrate_sub;
   rclcpp::TimerBase::SharedPtr m_timer;
 
   std::string m_joint_name_prefix;
   double default_velocity_;
+  bool m_invert_pan{true};
 
   // Cached state for diagnostics.
   std::string m_connection_type{"unknown"};
