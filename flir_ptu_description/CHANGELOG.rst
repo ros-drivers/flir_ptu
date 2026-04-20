@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.0 (2026-04-20)
+------------------
 * Added sim support, fixed function naming.
 * Updated to ROS 2.
 * Contributors: Tony Baltovski
