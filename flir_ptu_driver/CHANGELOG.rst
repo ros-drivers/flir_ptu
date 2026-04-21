@@ -2,6 +2,11 @@
 Changelog for package flir_ptu_driver
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* Fixed compiling on ARM by changing to sign char.
+* Contributors: Tony Baltovski
+
 1.0.0 (2026-04-20)
 ------------------
 * Added sim support, fixed function naming.
