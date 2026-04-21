@@ -383,7 +383,7 @@ private:
   double m_last_tilt{0.0};
   double m_last_pan_speed{0.0};
   double m_last_tilt_speed{0.0};
-  char m_last_mode{-1};
+  signed char m_last_mode{-1};
   size_t m_comm_errors{0};
   double m_expected_hz_min{1.0};
   double m_expected_hz_max{1.0};
