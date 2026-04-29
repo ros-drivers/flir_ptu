@@ -137,7 +137,7 @@
     <joint name="${name}_mount" type="fixed">
       <parent link="${name}_tilt_link"/>
       <child link="${name}_mount_link"/>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0.0757" rpy="0 0 0" />
     </joint>
 
     <!--
