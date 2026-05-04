@@ -2,8 +2,8 @@
 Changelog for package flir_ptu_description
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+1.0.2 (2026-05-04)
+------------------
 * Move the mount_link to the mounting point
 * Contributors: Luis Camero
 
